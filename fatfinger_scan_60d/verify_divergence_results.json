@@ -1,0 +1,2852 @@
+[
+ {
+  "base": "ROSE",
+  "leg": "USDC",
+  "anchor_ms": 1787261040000,
+  "anchor_iso": "2026-08-20 21:24 UTC",
+  "div_pct": 36.75,
+  "verdict": "真",
+  "peak_pct": 35.59,
+  "n_pairs": 255110
+ },
+ {
+  "base": "ZRO",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 38.01,
+  "verdict": "真",
+  "peak_pct": 35.54,
+  "n_pairs": 7096
+ },
+ {
+  "base": "OSMO",
+  "leg": "USDC",
+  "anchor_ms": 1787260260000,
+  "anchor_iso": "2026-08-20 21:11 UTC",
+  "div_pct": 72.93,
+  "verdict": "真",
+  "peak_pct": 32.52,
+  "n_pairs": 160762
+ },
+ {
+  "base": "ARKM",
+  "leg": "USDC",
+  "anchor_ms": 1787260560000,
+  "anchor_iso": "2026-08-20 21:16 UTC",
+  "div_pct": 34.47,
+  "verdict": "真",
+  "peak_pct": 32.23,
+  "n_pairs": 404955
+ },
+ {
+  "base": "IO",
+  "leg": "USDC",
+  "anchor_ms": 1787262300000,
+  "anchor_iso": "2026-08-20 21:45 UTC",
+  "div_pct": 34.64,
+  "verdict": "真",
+  "peak_pct": 32.21,
+  "n_pairs": 227614
+ },
+ {
+  "base": "COOKIE",
+  "leg": "USDC",
+  "anchor_ms": 1787267100000,
+  "anchor_iso": "2026-08-20 23:05 UTC",
+  "div_pct": 36.28,
+  "verdict": "真",
+  "peak_pct": 32.2,
+  "n_pairs": 26071
+ },
+ {
+  "base": "NOM",
+  "leg": "USDC",
+  "anchor_ms": 1787261400000,
+  "anchor_iso": "2026-08-20 21:30 UTC",
+  "div_pct": 31.61,
+  "verdict": "真",
+  "peak_pct": 30.68,
+  "n_pairs": 64457
+ },
+ {
+  "base": "THE",
+  "leg": "USDC",
+  "anchor_ms": 1787266080000,
+  "anchor_iso": "2026-08-20 22:48 UTC",
+  "div_pct": 31.28,
+  "verdict": "真",
+  "peak_pct": 29.8,
+  "n_pairs": 135151
+ },
+ {
+  "base": "ZKC",
+  "leg": "USDC",
+  "anchor_ms": 1787266200000,
+  "anchor_iso": "2026-08-20 22:50 UTC",
+  "div_pct": 29.93,
+  "verdict": "真",
+  "peak_pct": 29.28,
+  "n_pairs": 278370
+ },
+ {
+  "base": "PHA",
+  "leg": "USDC",
+  "anchor_ms": 1787261700000,
+  "anchor_iso": "2026-08-20 21:35 UTC",
+  "div_pct": 32.03,
+  "verdict": "真",
+  "peak_pct": 29.17,
+  "n_pairs": 75143
+ },
+ {
+  "base": "BREV",
+  "leg": "USDC",
+  "anchor_ms": 1787239980000,
+  "anchor_iso": "2026-08-20 15:33 UTC",
+  "div_pct": 29.96,
+  "verdict": "真",
+  "peak_pct": 29.09,
+  "n_pairs": 134193
+ },
+ {
+  "base": "TURTLE",
+  "leg": "USDC",
+  "anchor_ms": 1787266740000,
+  "anchor_iso": "2026-08-20 22:59 UTC",
+  "div_pct": 29.53,
+  "verdict": "真",
+  "peak_pct": 27.56,
+  "n_pairs": 256068
+ },
+ {
+  "base": "PARTI",
+  "leg": "USDC",
+  "anchor_ms": 1787261220000,
+  "anchor_iso": "2026-08-20 21:27 UTC",
+  "div_pct": 25.31,
+  "verdict": "真",
+  "peak_pct": 24.28,
+  "n_pairs": 63308
+ },
+ {
+  "base": "FF",
+  "leg": "USDC",
+  "anchor_ms": 1787241960000,
+  "anchor_iso": "2026-08-20 16:06 UTC",
+  "div_pct": 24.18,
+  "verdict": "真",
+  "peak_pct": 24.11,
+  "n_pairs": 2631
+ },
+ {
+  "base": "ONDO",
+  "leg": "USDC",
+  "anchor_ms": 1787375580000,
+  "anchor_iso": "2026-08-22 05:13 UTC",
+  "div_pct": 22.23,
+  "verdict": "真",
+  "peak_pct": 22.45,
+  "n_pairs": 170381
+ },
+ {
+  "base": "C",
+  "leg": "USDC",
+  "anchor_ms": 1787247840000,
+  "anchor_iso": "2026-08-20 17:44 UTC",
+  "div_pct": 22.37,
+  "verdict": "真",
+  "peak_pct": 21.08,
+  "n_pairs": 302408
+ },
+ {
+  "base": "WLD",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 30.07,
+  "verdict": "真",
+  "peak_pct": 20.89,
+  "n_pairs": 990678
+ },
+ {
+  "base": "SAHARA",
+  "leg": "USDC",
+  "anchor_ms": 1787261760000,
+  "anchor_iso": "2026-08-20 21:36 UTC",
+  "div_pct": 21.03,
+  "verdict": "真",
+  "peak_pct": 20.73,
+  "n_pairs": 35461
+ },
+ {
+  "base": "XTZ",
+  "leg": "USDC",
+  "anchor_ms": 1787264580000,
+  "anchor_iso": "2026-08-20 22:23 UTC",
+  "div_pct": 26.14,
+  "verdict": "真",
+  "peak_pct": 20.0,
+  "n_pairs": 431825
+ },
+ {
+  "base": "RESOLV",
+  "leg": "USDC",
+  "anchor_ms": 1787267400000,
+  "anchor_iso": "2026-08-20 23:10 UTC",
+  "div_pct": 20.47,
+  "verdict": "真",
+  "peak_pct": 19.89,
+  "n_pairs": 121305
+ },
+ {
+  "base": "YB",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 25.58,
+  "verdict": "真",
+  "peak_pct": 19.58,
+  "n_pairs": 835
+ },
+ {
+  "base": "COTI",
+  "leg": "USDC",
+  "anchor_ms": 1787267220000,
+  "anchor_iso": "2026-08-20 23:07 UTC",
+  "div_pct": 21.16,
+  "verdict": "真",
+  "peak_pct": 19.36,
+  "n_pairs": 54001
+ },
+ {
+  "base": "CKB",
+  "leg": "USDC",
+  "anchor_ms": 1787263980000,
+  "anchor_iso": "2026-08-20 22:13 UTC",
+  "div_pct": 28.73,
+  "verdict": "真",
+  "peak_pct": 18.69,
+  "n_pairs": 651728
+ },
+ {
+  "base": "ACE",
+  "leg": "USDC",
+  "anchor_ms": 1787759640000,
+  "anchor_iso": "2026-08-26 15:54 UTC",
+  "div_pct": 17.95,
+  "verdict": "真",
+  "peak_pct": 17.95,
+  "n_pairs": 494
+ },
+ {
+  "base": "NEWT",
+  "leg": "USDC",
+  "anchor_ms": 1787238600000,
+  "anchor_iso": "2026-08-20 15:10 UTC",
+  "div_pct": 18.31,
+  "verdict": "真",
+  "peak_pct": 17.93,
+  "n_pairs": 16145
+ },
+ {
+  "base": "ACT",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 22.07,
+  "verdict": "真",
+  "peak_pct": 17.92,
+  "n_pairs": 7694
+ },
+ {
+  "base": "ZKP",
+  "leg": "USDC",
+  "anchor_ms": 1787239320000,
+  "anchor_iso": "2026-08-20 15:22 UTC",
+  "div_pct": 17.68,
+  "verdict": "真",
+  "peak_pct": 17.63,
+  "n_pairs": 108696
+ },
+ {
+  "base": "GMT",
+  "leg": "USDC",
+  "anchor_ms": 1787238180000,
+  "anchor_iso": "2026-08-20 15:03 UTC",
+  "div_pct": 17.56,
+  "verdict": "真",
+  "peak_pct": 17.38,
+  "n_pairs": 13807
+ },
+ {
+  "base": "CATI",
+  "leg": "USDC",
+  "anchor_ms": 1787241840000,
+  "anchor_iso": "2026-08-20 16:04 UTC",
+  "div_pct": 18.83,
+  "verdict": "真",
+  "peak_pct": 17.29,
+  "n_pairs": 240871
+ },
+ {
+  "base": "FLUX",
+  "leg": "USDC",
+  "anchor_ms": 1787242680000,
+  "anchor_iso": "2026-08-20 16:18 UTC",
+  "div_pct": 17.54,
+  "verdict": "真",
+  "peak_pct": 17.22,
+  "n_pairs": 70857
+ },
+ {
+  "base": "1MBABYDOGE",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 20.87,
+  "verdict": "真",
+  "peak_pct": 17.03,
+  "n_pairs": 2439
+ },
+ {
+  "base": "EIGEN",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 18.71,
+  "verdict": "真",
+  "peak_pct": 16.94,
+  "n_pairs": 74933
+ },
+ {
+  "base": "IOTA",
+  "leg": "USDC",
+  "anchor_ms": 1787375760000,
+  "anchor_iso": "2026-08-22 05:16 UTC",
+  "div_pct": 21.6,
+  "verdict": "真",
+  "peak_pct": 16.11,
+  "n_pairs": 170
+ },
+ {
+  "base": "AUCTION",
+  "leg": "USDC",
+  "anchor_ms": 1787021040000,
+  "anchor_iso": "2026-08-18 02:44 UTC",
+  "div_pct": 19.46,
+  "verdict": "真",
+  "peak_pct": 16.08,
+  "n_pairs": 5069
+ },
+ {
+  "base": "WLD",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 25.82,
+  "verdict": "真",
+  "peak_pct": 15.15,
+  "n_pairs": 57166
+ },
+ {
+  "base": "LA",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 20.73,
+  "verdict": "真",
+  "peak_pct": 14.84,
+  "n_pairs": 1048
+ },
+ {
+  "base": "SSV",
+  "leg": "USDC",
+  "anchor_ms": 1787261940000,
+  "anchor_iso": "2026-08-20 21:39 UTC",
+  "div_pct": 15.08,
+  "verdict": "真",
+  "peak_pct": 14.13,
+  "n_pairs": 146798
+ },
+ {
+  "base": "GENIUS",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 22.49,
+  "verdict": "真",
+  "peak_pct": 14.04,
+  "n_pairs": 10409
+ },
+ {
+  "base": "PENGU",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 24.14,
+  "verdict": "真",
+  "peak_pct": 13.47,
+  "n_pairs": 829280
+ },
+ {
+  "base": "HOME",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 14.83,
+  "verdict": "真",
+  "peak_pct": 13.46,
+  "n_pairs": 11125
+ },
+ {
+  "base": "VANA",
+  "leg": "USDC",
+  "anchor_ms": 1787245500000,
+  "anchor_iso": "2026-08-20 17:05 UTC",
+  "div_pct": 13.63,
+  "verdict": "真",
+  "peak_pct": 12.82,
+  "n_pairs": 31294
+ },
+ {
+  "base": "UMA",
+  "leg": "USDC",
+  "anchor_ms": 1787239680000,
+  "anchor_iso": "2026-08-20 15:28 UTC",
+  "div_pct": 14.41,
+  "verdict": "真",
+  "peak_pct": 12.24,
+  "n_pairs": 162782
+ },
+ {
+  "base": "TRUMP",
+  "leg": "FDUSD",
+  "anchor_ms": 1787371020000,
+  "anchor_iso": "2026-08-22 03:57 UTC",
+  "div_pct": 14.64,
+  "verdict": "真",
+  "peak_pct": 12.15,
+  "n_pairs": 4495
+ },
+ {
+  "base": "SPK",
+  "leg": "USDC",
+  "anchor_ms": 1787375640000,
+  "anchor_iso": "2026-08-22 05:14 UTC",
+  "div_pct": 12.99,
+  "verdict": "真",
+  "peak_pct": 11.81,
+  "n_pairs": 6199
+ },
+ {
+  "base": "MANTA",
+  "leg": "USDC",
+  "anchor_ms": 1787261580000,
+  "anchor_iso": "2026-08-20 21:33 UTC",
+  "div_pct": 12.4,
+  "verdict": "真",
+  "peak_pct": 11.5,
+  "n_pairs": 92095
+ },
+ {
+  "base": "FIL",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 13.74,
+  "verdict": "真",
+  "peak_pct": 11.43,
+  "n_pairs": 208071
+ },
+ {
+  "base": "POL",
+  "leg": "FDUSD",
+  "anchor_ms": 1787073480000,
+  "anchor_iso": "2026-08-18 17:18 UTC",
+  "div_pct": 11.35,
+  "verdict": "真",
+  "peak_pct": 11.33,
+  "n_pairs": 59821
+ },
+ {
+  "base": "STX",
+  "leg": "USDC",
+  "anchor_ms": 1787264700000,
+  "anchor_iso": "2026-08-20 22:25 UTC",
+  "div_pct": 13.5,
+  "verdict": "真",
+  "peak_pct": 11.3,
+  "n_pairs": 203516
+ },
+ {
+  "base": "FF",
+  "leg": "FDUSD",
+  "anchor_ms": 1787902800000,
+  "anchor_iso": "2026-08-28 07:40 UTC",
+  "div_pct": 12.81,
+  "verdict": "真",
+  "peak_pct": 11.25,
+  "n_pairs": 41
+ },
+ {
+  "base": "POL",
+  "leg": "USDC",
+  "anchor_ms": 1787073480000,
+  "anchor_iso": "2026-08-18 17:18 UTC",
+  "div_pct": 11.16,
+  "verdict": "真",
+  "peak_pct": 11.03,
+  "n_pairs": 103995
+ },
+ {
+  "base": "FIL",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 13.06,
+  "verdict": "真",
+  "peak_pct": 10.99,
+  "n_pairs": 17685
+ },
+ {
+  "base": "S",
+  "leg": "USDC",
+  "anchor_ms": 1787729520000,
+  "anchor_iso": "2026-08-26 07:32 UTC",
+  "div_pct": 10.68,
+  "verdict": "真",
+  "peak_pct": 10.68,
+  "n_pairs": 260547
+ },
+ {
+  "base": "ONT",
+  "leg": "USDC",
+  "anchor_ms": 1787257980000,
+  "anchor_iso": "2026-08-20 20:33 UTC",
+  "div_pct": 11.43,
+  "verdict": "真",
+  "peak_pct": 10.6,
+  "n_pairs": 22627
+ },
+ {
+  "base": "NIL",
+  "leg": "USDC",
+  "anchor_ms": 1787375580000,
+  "anchor_iso": "2026-08-22 05:13 UTC",
+  "div_pct": 12.45,
+  "verdict": "真",
+  "peak_pct": 10.45,
+  "n_pairs": 26522
+ },
+ {
+  "base": "MMT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 17.4,
+  "verdict": "真",
+  "peak_pct": 10.4,
+  "n_pairs": 41248
+ },
+ {
+  "base": "PIXEL",
+  "leg": "USDC",
+  "anchor_ms": 1787246040000,
+  "anchor_iso": "2026-08-20 17:14 UTC",
+  "div_pct": 10.67,
+  "verdict": "真",
+  "peak_pct": 10.23,
+  "n_pairs": 12827
+ },
+ {
+  "base": "CRV",
+  "leg": "USDC",
+  "anchor_ms": 1787278920000,
+  "anchor_iso": "2026-08-21 02:22 UTC",
+  "div_pct": 10.66,
+  "verdict": "真",
+  "peak_pct": 10.18,
+  "n_pairs": 964231
+ },
+ {
+  "base": "TRB",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 13.06,
+  "verdict": "真",
+  "peak_pct": 10.07,
+  "n_pairs": 28668
+ },
+ {
+  "base": "CHIP",
+  "leg": "USDC",
+  "anchor_ms": 1787918940000,
+  "anchor_iso": "2026-08-28 12:09 UTC",
+  "div_pct": 11.96,
+  "verdict": "真",
+  "peak_pct": 9.98,
+  "n_pairs": 210061
+ },
+ {
+  "base": "MORPHO",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 10.32,
+  "verdict": "真",
+  "peak_pct": 9.76,
+  "n_pairs": 3432
+ },
+ {
+  "base": "XPL",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 15.22,
+  "verdict": "真",
+  "peak_pct": 9.73,
+  "n_pairs": 765011
+ },
+ {
+  "base": "BEAMX",
+  "leg": "USDC",
+  "anchor_ms": 1787242440000,
+  "anchor_iso": "2026-08-20 16:14 UTC",
+  "div_pct": 10.55,
+  "verdict": "真",
+  "peak_pct": 9.71,
+  "n_pairs": 41537
+ },
+ {
+  "base": "AIXBT",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 16.61,
+  "verdict": "真",
+  "peak_pct": 9.69,
+  "n_pairs": 924
+ },
+ {
+  "base": "SKY",
+  "leg": "USDC",
+  "anchor_ms": 1787133780000,
+  "anchor_iso": "2026-08-19 10:03 UTC",
+  "div_pct": 10.78,
+  "verdict": "真",
+  "peak_pct": 9.68,
+  "n_pairs": 129278
+ },
+ {
+  "base": "DASH",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 10.57,
+  "verdict": "真",
+  "peak_pct": 9.49,
+  "n_pairs": 54143
+ },
+ {
+  "base": "SYN",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 14.87,
+  "verdict": "真",
+  "peak_pct": 9.13,
+  "n_pairs": 33332
+ },
+ {
+  "base": "ROBO",
+  "leg": "USDC",
+  "anchor_ms": 1787347140000,
+  "anchor_iso": "2026-08-21 21:19 UTC",
+  "div_pct": 26.31,
+  "verdict": "真",
+  "peak_pct": 9.06,
+  "n_pairs": 93810
+ },
+ {
+  "base": "ZK",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 10.95,
+  "verdict": "真",
+  "peak_pct": 8.85,
+  "n_pairs": 2124
+ },
+ {
+  "base": "OPG",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 16.74,
+  "verdict": "真",
+  "peak_pct": 8.84,
+  "n_pairs": 4529
+ },
+ {
+  "base": "SAGA",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 15.66,
+  "verdict": "真",
+  "peak_pct": 8.61,
+  "n_pairs": 30019
+ },
+ {
+  "base": "FOGO",
+  "leg": "USDC",
+  "anchor_ms": 1787946120000,
+  "anchor_iso": "2026-08-28 19:42 UTC",
+  "div_pct": 9.41,
+  "verdict": "真",
+  "peak_pct": 8.59,
+  "n_pairs": 13988
+ },
+ {
+  "base": "CVX",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 8.45,
+  "verdict": "真",
+  "peak_pct": 8.45,
+  "n_pairs": 3956
+ },
+ {
+  "base": "SAND",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 10.65,
+  "verdict": "真",
+  "peak_pct": 8.28,
+  "n_pairs": 4091
+ },
+ {
+  "base": "BARD",
+  "leg": "USDC",
+  "anchor_ms": 1787597040000,
+  "anchor_iso": "2026-08-24 18:44 UTC",
+  "div_pct": 8.53,
+  "verdict": "真",
+  "peak_pct": 8.28,
+  "n_pairs": 47357
+ },
+ {
+  "base": "BROCCOLI714",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 14.62,
+  "verdict": "真",
+  "peak_pct": 8.26,
+  "n_pairs": 1222
+ },
+ {
+  "base": "TURBO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 14.24,
+  "verdict": "真",
+  "peak_pct": 8.15,
+  "n_pairs": 1764
+ },
+ {
+  "base": "TRUMP",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 28.57,
+  "verdict": "真",
+  "peak_pct": 7.99,
+  "n_pairs": 257995
+ },
+ {
+  "base": "HAEDAL",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 14.98,
+  "verdict": "真",
+  "peak_pct": 7.88,
+  "n_pairs": 2368
+ },
+ {
+  "base": "LINK",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 8.42,
+  "verdict": "真",
+  "peak_pct": 7.88,
+  "n_pairs": 1554330
+ },
+ {
+  "base": "EDEN",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 16.14,
+  "verdict": "真",
+  "peak_pct": 7.84,
+  "n_pairs": 8909
+ },
+ {
+  "base": "ATOM",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 9.78,
+  "verdict": "真",
+  "peak_pct": 7.79,
+  "n_pairs": 17283
+ },
+ {
+  "base": "LISTA",
+  "leg": "USDC",
+  "anchor_ms": 1787245620000,
+  "anchor_iso": "2026-08-20 17:07 UTC",
+  "div_pct": 8.79,
+  "verdict": "真",
+  "peak_pct": 7.79,
+  "n_pairs": 3162
+ },
+ {
+  "base": "SOPH",
+  "leg": "USDC",
+  "anchor_ms": 1786917420000,
+  "anchor_iso": "2026-08-16 21:57 UTC",
+  "div_pct": 9.09,
+  "verdict": "真",
+  "peak_pct": 7.77,
+  "n_pairs": 8126
+ },
+ {
+  "base": "WCT",
+  "leg": "USDC",
+  "anchor_ms": 1786838400000,
+  "anchor_iso": "2026-08-16 00:00 UTC",
+  "div_pct": 9.25,
+  "verdict": "真",
+  "peak_pct": 7.74,
+  "n_pairs": 69985
+ },
+ {
+  "base": "APT",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 15.86,
+  "verdict": "真",
+  "peak_pct": 7.64,
+  "n_pairs": 2338
+ },
+ {
+  "base": "GIGGLE",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 12.12,
+  "verdict": "真",
+  "peak_pct": 7.54,
+  "n_pairs": 51328
+ },
+ {
+  "base": "0G",
+  "leg": "USDC",
+  "anchor_ms": 1787375220000,
+  "anchor_iso": "2026-08-22 05:07 UTC",
+  "div_pct": 12.42,
+  "verdict": "真",
+  "peak_pct": 7.27,
+  "n_pairs": 1034130
+ },
+ {
+  "base": "币安人生",
+  "leg": "USD1",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 15.73,
+  "verdict": "真",
+  "peak_pct": 7.2,
+  "n_pairs": 320
+ },
+ {
+  "base": "HEMI",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 16.74,
+  "verdict": "真",
+  "peak_pct": 7.18,
+  "n_pairs": 108631
+ },
+ {
+  "base": "BB",
+  "leg": "USDC",
+  "anchor_ms": 1787317260000,
+  "anchor_iso": "2026-08-21 13:01 UTC",
+  "div_pct": 13.89,
+  "verdict": "真",
+  "peak_pct": 7.12,
+  "n_pairs": 43738
+ },
+ {
+  "base": "SXT",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 14.93,
+  "verdict": "真",
+  "peak_pct": 7.09,
+  "n_pairs": 552
+ },
+ {
+  "base": "BMT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 17.5,
+  "verdict": "真",
+  "peak_pct": 7.06,
+  "n_pairs": 14033
+ },
+ {
+  "base": "INIT",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 12.13,
+  "verdict": "真",
+  "peak_pct": 7.04,
+  "n_pairs": 995
+ },
+ {
+  "base": "VET",
+  "leg": "USDC",
+  "anchor_ms": 1787362440000,
+  "anchor_iso": "2026-08-22 01:34 UTC",
+  "div_pct": 7.55,
+  "verdict": "真",
+  "peak_pct": 7.02,
+  "n_pairs": 1991
+ },
+ {
+  "base": "LUNC",
+  "leg": "USDC",
+  "anchor_ms": 1787350740000,
+  "anchor_iso": "2026-08-21 22:19 UTC",
+  "div_pct": 7.02,
+  "verdict": "真",
+  "peak_pct": 7.02,
+  "n_pairs": 32318
+ },
+ {
+  "base": "BABY",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 12.15,
+  "verdict": "真",
+  "peak_pct": 6.95,
+  "n_pairs": 3295
+ },
+ {
+  "base": "KAT",
+  "leg": "USDC",
+  "anchor_ms": 1787260920000,
+  "anchor_iso": "2026-08-20 21:22 UTC",
+  "div_pct": 7.27,
+  "verdict": "真",
+  "peak_pct": 6.93,
+  "n_pairs": 53061
+ },
+ {
+  "base": "BIO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 15.33,
+  "verdict": "真",
+  "peak_pct": 6.9,
+  "n_pairs": 105245
+ },
+ {
+  "base": "MANTRA",
+  "leg": "USDC",
+  "anchor_ms": 1787263920000,
+  "anchor_iso": "2026-08-20 22:12 UTC",
+  "div_pct": 9.98,
+  "verdict": "真",
+  "peak_pct": 6.9,
+  "n_pairs": 4623
+ },
+ {
+  "base": "W",
+  "leg": "USDC",
+  "anchor_ms": 1787746800000,
+  "anchor_iso": "2026-08-26 12:20 UTC",
+  "div_pct": 8.27,
+  "verdict": "真",
+  "peak_pct": 6.85,
+  "n_pairs": 81863
+ },
+ {
+  "base": "ENJ",
+  "leg": "USDC",
+  "anchor_ms": 1787928960000,
+  "anchor_iso": "2026-08-28 14:56 UTC",
+  "div_pct": 6.75,
+  "verdict": "真",
+  "peak_pct": 6.75,
+  "n_pairs": 23868
+ },
+ {
+  "base": "REZ",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.22,
+  "verdict": "真",
+  "peak_pct": 6.68,
+  "n_pairs": 1855
+ },
+ {
+  "base": "PLUME",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 9.21,
+  "verdict": "真",
+  "peak_pct": 6.54,
+  "n_pairs": 13355
+ },
+ {
+  "base": "SUI",
+  "leg": "FDUSD",
+  "anchor_ms": 1787021700000,
+  "anchor_iso": "2026-08-18 02:55 UTC",
+  "div_pct": 10.78,
+  "verdict": "真",
+  "peak_pct": 6.53,
+  "n_pairs": 224895
+ },
+ {
+  "base": "AT",
+  "leg": "USDC",
+  "anchor_ms": 1787519460000,
+  "anchor_iso": "2026-08-23 21:11 UTC",
+  "div_pct": 6.49,
+  "verdict": "真",
+  "peak_pct": 6.49,
+  "n_pairs": 11149
+ },
+ {
+  "base": "GUN",
+  "leg": "USDC",
+  "anchor_ms": 1786973640000,
+  "anchor_iso": "2026-08-17 13:34 UTC",
+  "div_pct": 9.57,
+  "verdict": "真",
+  "peak_pct": 6.48,
+  "n_pairs": 12771
+ },
+ {
+  "base": "BANANAS31",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.32,
+  "verdict": "真",
+  "peak_pct": 6.32,
+  "n_pairs": 5019
+ },
+ {
+  "base": "RARE",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 12.68,
+  "verdict": "真",
+  "peak_pct": 6.27,
+  "n_pairs": 35886
+ },
+ {
+  "base": "HMSTR",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 16.77,
+  "verdict": "真",
+  "peak_pct": 6.23,
+  "n_pairs": 28221
+ },
+ {
+  "base": "SEI",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 8.07,
+  "verdict": "真",
+  "peak_pct": 6.19,
+  "n_pairs": 106684
+ },
+ {
+  "base": "BLUR",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 7.34,
+  "verdict": "真",
+  "peak_pct": 6.09,
+  "n_pairs": 695
+ },
+ {
+  "base": "1INCH",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 13.51,
+  "verdict": "真",
+  "peak_pct": 5.95,
+  "n_pairs": 9654
+ },
+ {
+  "base": "CETUS",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 10.05,
+  "verdict": "真",
+  "peak_pct": 5.95,
+  "n_pairs": 806
+ },
+ {
+  "base": "NEIRO",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 13.69,
+  "verdict": "真",
+  "peak_pct": 5.92,
+  "n_pairs": 95796
+ },
+ {
+  "base": "ASTER",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 11.48,
+  "verdict": "真",
+  "peak_pct": 5.92,
+  "n_pairs": 65476
+ },
+ {
+  "base": "TUT",
+  "leg": "USDC",
+  "anchor_ms": 1787435040000,
+  "anchor_iso": "2026-08-22 21:44 UTC",
+  "div_pct": 15.34,
+  "verdict": "真",
+  "peak_pct": 5.82,
+  "n_pairs": 154231
+ },
+ {
+  "base": "OPN",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 17.05,
+  "verdict": "真",
+  "peak_pct": 5.63,
+  "n_pairs": 23965
+ },
+ {
+  "base": "ARB",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.19,
+  "verdict": "真",
+  "peak_pct": 5.61,
+  "n_pairs": 98401
+ },
+ {
+  "base": "VELODROME",
+  "leg": "USDC",
+  "anchor_ms": 1787911620000,
+  "anchor_iso": "2026-08-28 10:07 UTC",
+  "div_pct": 5.59,
+  "verdict": "真",
+  "peak_pct": 5.59,
+  "n_pairs": 1336
+ },
+ {
+  "base": "TST",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 12.9,
+  "verdict": "真",
+  "peak_pct": 5.54,
+  "n_pairs": 28031
+ },
+ {
+  "base": "TNSR",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 16.56,
+  "verdict": "真",
+  "peak_pct": 5.52,
+  "n_pairs": 7152
+ },
+ {
+  "base": "KAITO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.47,
+  "verdict": "真",
+  "peak_pct": 5.52,
+  "n_pairs": 16911
+ },
+ {
+  "base": "ENSO",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 12.19,
+  "verdict": "真",
+  "peak_pct": 5.42,
+  "n_pairs": 4171
+ },
+ {
+  "base": "NEO",
+  "leg": "USDC",
+  "anchor_ms": 1787265180000,
+  "anchor_iso": "2026-08-20 22:33 UTC",
+  "div_pct": 6.88,
+  "verdict": "真",
+  "peak_pct": 5.28,
+  "n_pairs": 99266
+ },
+ {
+  "base": "DOLO",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 14.34,
+  "verdict": "真",
+  "peak_pct": 5.17,
+  "n_pairs": 5688
+ },
+ {
+  "base": "USDE",
+  "leg": "USDC",
+  "anchor_ms": 1787109600000,
+  "anchor_iso": "2026-08-19 03:20 UTC",
+  "div_pct": 5.17,
+  "verdict": "真",
+  "peak_pct": 5.14,
+  "n_pairs": 6875
+ },
+ {
+  "base": "TLM",
+  "leg": "USDC",
+  "anchor_ms": 1786952940000,
+  "anchor_iso": "2026-08-17 07:49 UTC",
+  "div_pct": 9.55,
+  "verdict": "真",
+  "peak_pct": 5.11,
+  "n_pairs": 143764
+ },
+ {
+  "base": "1000SATS",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 13.57,
+  "verdict": "真",
+  "peak_pct": 5.09,
+  "n_pairs": 12711
+ },
+ {
+  "base": "币安人生",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 14.61,
+  "verdict": "真",
+  "peak_pct": 5.07,
+  "n_pairs": 198729
+ },
+ {
+  "base": "PEOPLE",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 16.0,
+  "verdict": "真",
+  "peak_pct": 5.0,
+  "n_pairs": 47030
+ },
+ {
+  "base": "SOLV",
+  "leg": "USDC",
+  "anchor_ms": 1787660700000,
+  "anchor_iso": "2026-08-25 12:25 UTC",
+  "div_pct": 6.69,
+  "verdict": "弱",
+  "peak_pct": 4.95,
+  "n_pairs": 2087
+ },
+ {
+  "base": "IMX",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 8.59,
+  "verdict": "弱",
+  "peak_pct": 4.94,
+  "n_pairs": 4895
+ },
+ {
+  "base": "MEME",
+  "leg": "USDC",
+  "anchor_ms": 1787375760000,
+  "anchor_iso": "2026-08-22 05:16 UTC",
+  "div_pct": 8.7,
+  "verdict": "弱",
+  "peak_pct": 4.89,
+  "n_pairs": 30313
+ },
+ {
+  "base": "TRUMP",
+  "leg": "USD1",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 13.75,
+  "verdict": "弱",
+  "peak_pct": 4.84,
+  "n_pairs": 34749
+ },
+ {
+  "base": "VIRTUAL",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.73,
+  "verdict": "弱",
+  "peak_pct": 4.77,
+  "n_pairs": 154472
+ },
+ {
+  "base": "CFG",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 12.61,
+  "verdict": "弱",
+  "peak_pct": 4.75,
+  "n_pairs": 27585
+ },
+ {
+  "base": "XVG",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 12.93,
+  "verdict": "弱",
+  "peak_pct": 4.73,
+  "n_pairs": 2212
+ },
+ {
+  "base": "ETC",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 9.35,
+  "verdict": "弱",
+  "peak_pct": 4.72,
+  "n_pairs": 5076
+ },
+ {
+  "base": "OPEN",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 14.2,
+  "verdict": "弱",
+  "peak_pct": 4.62,
+  "n_pairs": 6986
+ },
+ {
+  "base": "LDO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.85,
+  "verdict": "弱",
+  "peak_pct": 4.61,
+  "n_pairs": 31043
+ },
+ {
+  "base": "WLFI",
+  "leg": "USD1",
+  "anchor_ms": 1787375760000,
+  "anchor_iso": "2026-08-22 05:16 UTC",
+  "div_pct": 11.21,
+  "verdict": "弱",
+  "peak_pct": 4.58,
+  "n_pairs": 41904
+ },
+ {
+  "base": "WAL",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 7.83,
+  "verdict": "弱",
+  "peak_pct": 4.42,
+  "n_pairs": 1286
+ },
+ {
+  "base": "HUMA",
+  "leg": "USDC",
+  "anchor_ms": 1787951880000,
+  "anchor_iso": "2026-08-28 21:18 UTC",
+  "div_pct": 9.04,
+  "verdict": "弱",
+  "peak_pct": 4.41,
+  "n_pairs": 38761
+ },
+ {
+  "base": "PNUT",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 11.29,
+  "verdict": "弱",
+  "peak_pct": 4.35,
+  "n_pairs": 3134
+ },
+ {
+  "base": "HBAR",
+  "leg": "USDC",
+  "anchor_ms": 1787375760000,
+  "anchor_iso": "2026-08-22 05:16 UTC",
+  "div_pct": 6.17,
+  "verdict": "弱",
+  "peak_pct": 4.28,
+  "n_pairs": 94120
+ },
+ {
+  "base": "BCH",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.34,
+  "verdict": "弱",
+  "peak_pct": 4.24,
+  "n_pairs": 191710
+ },
+ {
+  "base": "GPS",
+  "leg": "USDC",
+  "anchor_ms": 1786885680000,
+  "anchor_iso": "2026-08-16 13:08 UTC",
+  "div_pct": 13.33,
+  "verdict": "弱",
+  "peak_pct": 4.19,
+  "n_pairs": 60417
+ },
+ {
+  "base": "EGLD",
+  "leg": "USDC",
+  "anchor_ms": 1787484180000,
+  "anchor_iso": "2026-08-23 11:23 UTC",
+  "div_pct": 4.6,
+  "verdict": "弱",
+  "peak_pct": 4.17,
+  "n_pairs": 25304
+ },
+ {
+  "base": "BANANA",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 7.21,
+  "verdict": "弱",
+  "peak_pct": 4.16,
+  "n_pairs": 210
+ },
+ {
+  "base": "AIGENSYN",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 11.64,
+  "verdict": "弱",
+  "peak_pct": 4.14,
+  "n_pairs": 13465
+ },
+ {
+  "base": "ZEN",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.09,
+  "verdict": "弱",
+  "peak_pct": 4.11,
+  "n_pairs": 63815
+ },
+ {
+  "base": "BONK",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.33,
+  "verdict": "弱",
+  "peak_pct": 4.1,
+  "n_pairs": 9594
+ },
+ {
+  "base": "DYM",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 9.89,
+  "verdict": "弱",
+  "peak_pct": 4.09,
+  "n_pairs": 5083
+ },
+ {
+  "base": "FLOKI",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.43,
+  "verdict": "弱",
+  "peak_pct": 4.08,
+  "n_pairs": 71363
+ },
+ {
+  "base": "ZRO",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 9.98,
+  "verdict": "弱",
+  "peak_pct": 4.07,
+  "n_pairs": 45745
+ },
+ {
+  "base": "CGPT",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 5.01,
+  "verdict": "弱",
+  "peak_pct": 4.01,
+  "n_pairs": 170
+ },
+ {
+  "base": "1000CAT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.99,
+  "verdict": "弱",
+  "peak_pct": 3.96,
+  "n_pairs": 14030
+ },
+ {
+  "base": "AAVE",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.35,
+  "verdict": "弱",
+  "peak_pct": 3.95,
+  "n_pairs": 392663
+ },
+ {
+  "base": "DOGS",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 12.04,
+  "verdict": "弱",
+  "peak_pct": 3.82,
+  "n_pairs": 23944
+ },
+ {
+  "base": "MINA",
+  "leg": "USDC",
+  "anchor_ms": 1787942520000,
+  "anchor_iso": "2026-08-28 18:42 UTC",
+  "div_pct": 4.45,
+  "verdict": "弱",
+  "peak_pct": 3.77,
+  "n_pairs": 16427
+ },
+ {
+  "base": "MITO",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 15.87,
+  "verdict": "弱",
+  "peak_pct": 3.76,
+  "n_pairs": 1264
+ },
+ {
+  "base": "CFX",
+  "leg": "USDC",
+  "anchor_ms": 1787314440000,
+  "anchor_iso": "2026-08-21 12:14 UTC",
+  "div_pct": 5.76,
+  "verdict": "弱",
+  "peak_pct": 3.73,
+  "n_pairs": 32018
+ },
+ {
+  "base": "KERNEL",
+  "leg": "USDC",
+  "anchor_ms": 1787824320000,
+  "anchor_iso": "2026-08-27 09:52 UTC",
+  "div_pct": 11.43,
+  "verdict": "弱",
+  "peak_pct": 3.7,
+  "n_pairs": 6166
+ },
+ {
+  "base": "SHELL",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 6.91,
+  "verdict": "弱",
+  "peak_pct": 3.7,
+  "n_pairs": 768
+ },
+ {
+  "base": "PUMP",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 14.77,
+  "verdict": "弱",
+  "peak_pct": 3.68,
+  "n_pairs": 225136
+ },
+ {
+  "base": "USUAL",
+  "leg": "USDC",
+  "anchor_ms": 1787379360000,
+  "anchor_iso": "2026-08-22 06:16 UTC",
+  "div_pct": 14.37,
+  "verdict": "弱",
+  "peak_pct": 3.68,
+  "n_pairs": 11458
+ },
+ {
+  "base": "GRAM",
+  "leg": "USDC",
+  "anchor_ms": 1787306520000,
+  "anchor_iso": "2026-08-21 10:02 UTC",
+  "div_pct": 4.33,
+  "verdict": "弱",
+  "peak_pct": 3.68,
+  "n_pairs": 279219
+ },
+ {
+  "base": "DOGE",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 12.9,
+  "verdict": "弱",
+  "peak_pct": 3.55,
+  "n_pairs": 2310781
+ },
+ {
+  "base": "ZEC",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 16.27,
+  "verdict": "弱",
+  "peak_pct": 3.54,
+  "n_pairs": 2316754
+ },
+ {
+  "base": "EPIC",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 9.32,
+  "verdict": "弱",
+  "peak_pct": 3.54,
+  "n_pairs": 15436
+ },
+ {
+  "base": "MEGA",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 10.0,
+  "verdict": "弱",
+  "peak_pct": 3.5,
+  "n_pairs": 35949
+ },
+ {
+  "base": "DOGE",
+  "leg": "USD1",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 12.96,
+  "verdict": "弱",
+  "peak_pct": 3.44,
+  "n_pairs": 942102
+ },
+ {
+  "base": "BOME",
+  "leg": "USDC",
+  "anchor_ms": 1787375340000,
+  "anchor_iso": "2026-08-22 05:09 UTC",
+  "div_pct": 18.88,
+  "verdict": "弱",
+  "peak_pct": 3.38,
+  "n_pairs": 77103
+ },
+ {
+  "base": "LUNA",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.33,
+  "verdict": "弱",
+  "peak_pct": 3.38,
+  "n_pairs": 1832
+ },
+ {
+  "base": "TOWNS",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 16.31,
+  "verdict": "弱",
+  "peak_pct": 3.35,
+  "n_pairs": 6755
+ },
+ {
+  "base": "SUI",
+  "leg": "USD1",
+  "anchor_ms": 1787375340000,
+  "anchor_iso": "2026-08-22 05:09 UTC",
+  "div_pct": 10.03,
+  "verdict": "弱",
+  "peak_pct": 3.35,
+  "n_pairs": 366901
+ },
+ {
+  "base": "GRT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.09,
+  "verdict": "弱",
+  "peak_pct": 3.34,
+  "n_pairs": 2236
+ },
+ {
+  "base": "ADA",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 12.15,
+  "verdict": "弱",
+  "peak_pct": 3.24,
+  "n_pairs": 756372
+ },
+ {
+  "base": "FORM",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 9.35,
+  "verdict": "弱",
+  "peak_pct": 3.23,
+  "n_pairs": 9175
+ },
+ {
+  "base": "BCH",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.3,
+  "verdict": "弱",
+  "peak_pct": 3.22,
+  "n_pairs": 21593
+ },
+ {
+  "base": "BCH",
+  "leg": "USD1",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.12,
+  "verdict": "弱",
+  "peak_pct": 3.22,
+  "n_pairs": 7613
+ },
+ {
+  "base": "ACH",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 11.24,
+  "verdict": "弱",
+  "peak_pct": 3.17,
+  "n_pairs": 1147
+ },
+ {
+  "base": "DOT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.03,
+  "verdict": "弱",
+  "peak_pct": 3.1,
+  "n_pairs": 70720
+ },
+ {
+  "base": "DOT",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.81,
+  "verdict": "弱",
+  "peak_pct": 3.1,
+  "n_pairs": 23492
+ },
+ {
+  "base": "ADA",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 12.24,
+  "verdict": "弱",
+  "peak_pct": 3.05,
+  "n_pairs": 184497
+ },
+ {
+  "base": "WLFI",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.71,
+  "verdict": "弱",
+  "peak_pct": 3.04,
+  "n_pairs": 72294
+ },
+ {
+  "base": "AVAX",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.08,
+  "verdict": "弱",
+  "peak_pct": 3.04,
+  "n_pairs": 49626
+ },
+ {
+  "base": "HOLO",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 7.48,
+  "verdict": "弱",
+  "peak_pct": 2.96,
+  "n_pairs": 2016
+ },
+ {
+  "base": "HEI",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 13.03,
+  "verdict": "弱",
+  "peak_pct": 2.94,
+  "n_pairs": 10532
+ },
+ {
+  "base": "ETHFI",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.35,
+  "verdict": "弱",
+  "peak_pct": 2.94,
+  "n_pairs": 73865
+ },
+ {
+  "base": "BERA",
+  "leg": "USDC",
+  "anchor_ms": 1787375760000,
+  "anchor_iso": "2026-08-22 05:16 UTC",
+  "div_pct": 9.53,
+  "verdict": "弱",
+  "peak_pct": 2.91,
+  "n_pairs": 7344
+ },
+ {
+  "base": "HYPER",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 10.11,
+  "verdict": "弱",
+  "peak_pct": 2.89,
+  "n_pairs": 3015
+ },
+ {
+  "base": "APE",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.17,
+  "verdict": "弱",
+  "peak_pct": 2.83,
+  "n_pairs": 2723
+ },
+ {
+  "base": "KMNO",
+  "leg": "USDC",
+  "anchor_ms": 1787877840000,
+  "anchor_iso": "2026-08-28 00:44 UTC",
+  "div_pct": 4.31,
+  "verdict": "弱",
+  "peak_pct": 2.79,
+  "n_pairs": 63272
+ },
+ {
+  "base": "MIRA",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.41,
+  "verdict": "弱",
+  "peak_pct": 2.75,
+  "n_pairs": 11556
+ },
+ {
+  "base": "JTO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.38,
+  "verdict": "弱",
+  "peak_pct": 2.71,
+  "n_pairs": 114934
+ },
+ {
+  "base": "PEPE",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375340000,
+  "anchor_iso": "2026-08-22 05:09 UTC",
+  "div_pct": 10.39,
+  "verdict": "弱",
+  "peak_pct": 2.7,
+  "n_pairs": 34277
+ },
+ {
+  "base": "ALT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 9.78,
+  "verdict": "弱",
+  "peak_pct": 2.67,
+  "n_pairs": 2498
+ },
+ {
+  "base": "TIA",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.79,
+  "verdict": "弱",
+  "peak_pct": 2.65,
+  "n_pairs": 106009
+ },
+ {
+  "base": "TREE",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.36,
+  "verdict": "弱",
+  "peak_pct": 2.64,
+  "n_pairs": 10829
+ },
+ {
+  "base": "ZEC",
+  "leg": "USD1",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 16.38,
+  "verdict": "弱",
+  "peak_pct": 2.62,
+  "n_pairs": 63065
+ },
+ {
+  "base": "ZAMA",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 9.34,
+  "verdict": "弱",
+  "peak_pct": 2.57,
+  "n_pairs": 8207
+ },
+ {
+  "base": "PENDLE",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 6.4,
+  "verdict": "弱",
+  "peak_pct": 2.55,
+  "n_pairs": 22535
+ },
+ {
+  "base": "OPN",
+  "leg": "USD1",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 14.58,
+  "verdict": "弱",
+  "peak_pct": 2.54,
+  "n_pairs": 467
+ },
+ {
+  "base": "AVAX",
+  "leg": "USD1",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.82,
+  "verdict": "弱",
+  "peak_pct": 2.52,
+  "n_pairs": 8286
+ },
+ {
+  "base": "NEAR",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.04,
+  "verdict": "弱",
+  "peak_pct": 2.51,
+  "n_pairs": 591799
+ },
+ {
+  "base": "SAPIEN",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.63,
+  "verdict": "弱",
+  "peak_pct": 2.5,
+  "n_pairs": 3442
+ },
+ {
+  "base": "FET",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 11.05,
+  "verdict": "弱",
+  "peak_pct": 2.48,
+  "n_pairs": 43498
+ },
+ {
+  "base": "PEPE",
+  "leg": "USDC",
+  "anchor_ms": 1787375340000,
+  "anchor_iso": "2026-08-22 05:09 UTC",
+  "div_pct": 10.68,
+  "verdict": "弱",
+  "peak_pct": 2.46,
+  "n_pairs": 208253
+ },
+ {
+  "base": "COW",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 12.1,
+  "verdict": "弱",
+  "peak_pct": 2.44,
+  "n_pairs": 3127
+ },
+ {
+  "base": "RENDER",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 9.0,
+  "verdict": "弱",
+  "peak_pct": 2.44,
+  "n_pairs": 103816
+ },
+ {
+  "base": "ERA",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.5,
+  "verdict": "弱",
+  "peak_pct": 2.39,
+  "n_pairs": 3022
+ },
+ {
+  "base": "RE",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.31,
+  "verdict": "弱",
+  "peak_pct": 2.36,
+  "n_pairs": 140770
+ },
+ {
+  "base": "RED",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 13.54,
+  "verdict": "弱",
+  "peak_pct": 2.33,
+  "n_pairs": 1960
+ },
+ {
+  "base": "AR",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.87,
+  "verdict": "弱",
+  "peak_pct": 2.32,
+  "n_pairs": 70909
+ },
+ {
+  "base": "JUP",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 5.93,
+  "verdict": "弱",
+  "peak_pct": 2.29,
+  "n_pairs": 6379
+ },
+ {
+  "base": "NEAR",
+  "leg": "USD1",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.33,
+  "verdict": "弱",
+  "peak_pct": 2.22,
+  "n_pairs": 24854
+ },
+ {
+  "base": "TAO",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.33,
+  "verdict": "弱",
+  "peak_pct": 2.22,
+  "n_pairs": 29084
+ },
+ {
+  "base": "PEPE",
+  "leg": "USD1",
+  "anchor_ms": 1787375340000,
+  "anchor_iso": "2026-08-22 05:09 UTC",
+  "div_pct": 9.09,
+  "verdict": "弱",
+  "peak_pct": 2.21,
+  "n_pairs": 4085
+ },
+ {
+  "base": "DOGE",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 15.71,
+  "verdict": "弱",
+  "peak_pct": 2.2,
+  "n_pairs": 1661051
+ },
+ {
+  "base": "YGG",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 9.2,
+  "verdict": "弱",
+  "peak_pct": 2.2,
+  "n_pairs": 5696
+ },
+ {
+  "base": "STO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.5,
+  "verdict": "弱",
+  "peak_pct": 2.18,
+  "n_pairs": 1205
+ },
+ {
+  "base": "ICP",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 12.97,
+  "verdict": "弱",
+  "peak_pct": 2.17,
+  "n_pairs": 208156
+ },
+ {
+  "base": "AXS",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.47,
+  "verdict": "弱",
+  "peak_pct": 2.16,
+  "n_pairs": 17719
+ },
+ {
+  "base": "API3",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 7.76,
+  "verdict": "弱",
+  "peak_pct": 2.14,
+  "n_pairs": 1404
+ },
+ {
+  "base": "SUI",
+  "leg": "USDC",
+  "anchor_ms": 1787375760000,
+  "anchor_iso": "2026-08-22 05:16 UTC",
+  "div_pct": 10.1,
+  "verdict": "弱",
+  "peak_pct": 2.12,
+  "n_pairs": 1214544
+ },
+ {
+  "base": "TWT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 5.68,
+  "verdict": "弱",
+  "peak_pct": 2.12,
+  "n_pairs": 422
+ },
+ {
+  "base": "RSR",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 8.35,
+  "verdict": "弱",
+  "peak_pct": 2.08,
+  "n_pairs": 14874
+ },
+ {
+  "base": "ALLO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 12.99,
+  "verdict": "弱",
+  "peak_pct": 2.05,
+  "n_pairs": 88273
+ },
+ {
+  "base": "ESP",
+  "leg": "USDC",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 6.27,
+  "verdict": "弱",
+  "peak_pct": 2.05,
+  "n_pairs": 11410
+ },
+ {
+  "base": "LINK",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.74,
+  "verdict": "弱",
+  "peak_pct": 2.04,
+  "n_pairs": 441064
+ },
+ {
+  "base": "SAGA",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375520000,
+  "anchor_iso": "2026-08-22 05:12 UTC",
+  "div_pct": 20.11,
+  "verdict": "弱",
+  "peak_pct": 2.02,
+  "n_pairs": 115
+ },
+ {
+  "base": "KAIA",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 5.86,
+  "verdict": "弱",
+  "peak_pct": 2.0,
+  "n_pairs": 130
+ },
+ {
+  "base": "AVAX",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.59,
+  "verdict": "弱",
+  "peak_pct": 1.98,
+  "n_pairs": 604750
+ },
+ {
+  "base": "NXPC",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 7.74,
+  "verdict": "弱",
+  "peak_pct": 1.94,
+  "n_pairs": 1894
+ },
+ {
+  "base": "ORCA",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 6.17,
+  "verdict": "弱",
+  "peak_pct": 1.91,
+  "n_pairs": 5446
+ },
+ {
+  "base": "ENA",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.41,
+  "verdict": "弱",
+  "peak_pct": 1.89,
+  "n_pairs": 482071
+ },
+ {
+  "base": "SHIB",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.66,
+  "verdict": "弱",
+  "peak_pct": 1.87,
+  "n_pairs": 15218
+ },
+ {
+  "base": "MUBARAK",
+  "leg": "USDC",
+  "anchor_ms": 1787375280000,
+  "anchor_iso": "2026-08-22 05:08 UTC",
+  "div_pct": 7.66,
+  "verdict": "弱",
+  "peak_pct": 1.86,
+  "n_pairs": 6936
+ },
+ {
+  "base": "ENA",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.41,
+  "verdict": "弱",
+  "peak_pct": 1.84,
+  "n_pairs": 51874
+ },
+ {
+  "base": "EIGEN",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.37,
+  "verdict": "弱",
+  "peak_pct": 1.83,
+  "n_pairs": 5312
+ },
+ {
+  "base": "WIF",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.83,
+  "verdict": "弱",
+  "peak_pct": 1.8,
+  "n_pairs": 106947
+ },
+ {
+  "base": "CHZ",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.4,
+  "verdict": "弱",
+  "peak_pct": 1.78,
+  "n_pairs": 18101
+ },
+ {
+  "base": "STRK",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.97,
+  "verdict": "弱",
+  "peak_pct": 1.69,
+  "n_pairs": 45801
+ },
+ {
+  "base": "NOT",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 9.54,
+  "verdict": "弱",
+  "peak_pct": 1.68,
+  "n_pairs": 2736
+ },
+ {
+  "base": "ERA",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.5,
+  "verdict": "弱",
+  "peak_pct": 1.67,
+  "n_pairs": 242
+ },
+ {
+  "base": "BANK",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 5.88,
+  "verdict": "弱",
+  "peak_pct": 1.65,
+  "n_pairs": 2295
+ },
+ {
+  "base": "ETC",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 8.46,
+  "verdict": "弱",
+  "peak_pct": 1.64,
+  "n_pairs": 5754
+ },
+ {
+  "base": "INJ",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.6,
+  "verdict": "弱",
+  "peak_pct": 1.6,
+  "n_pairs": 3743
+ },
+ {
+  "base": "EUL",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 9.19,
+  "verdict": "弱",
+  "peak_pct": 1.58,
+  "n_pairs": 1205
+ },
+ {
+  "base": "THETA",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 7.7,
+  "verdict": "弱",
+  "peak_pct": 1.53,
+  "n_pairs": 3969
+ },
+ {
+  "base": "TAO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.19,
+  "verdict": "弱",
+  "peak_pct": 1.53,
+  "n_pairs": 242937
+ },
+ {
+  "base": "INJ",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.3,
+  "verdict": "弱",
+  "peak_pct": 1.52,
+  "n_pairs": 118233
+ },
+ {
+  "base": "SOL",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.81,
+  "verdict": "弱",
+  "peak_pct": 1.52,
+  "n_pairs": 2450705
+ },
+ {
+  "base": "GALA",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.5,
+  "verdict": "弱",
+  "peak_pct": 1.51,
+  "n_pairs": 170037
+ },
+ {
+  "base": "SHIB",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.87,
+  "verdict": "弱",
+  "peak_pct": 1.5,
+  "n_pairs": 57622
+ },
+ {
+  "base": "ALGO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 5.62,
+  "verdict": "弱",
+  "peak_pct": 1.48,
+  "n_pairs": 32772
+ },
+ {
+  "base": "ENS",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.13,
+  "verdict": "弱",
+  "peak_pct": 1.45,
+  "n_pairs": 10801
+ },
+ {
+  "base": "OP",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.67,
+  "verdict": "弱",
+  "peak_pct": 1.42,
+  "n_pairs": 41367
+ },
+ {
+  "base": "ZBT",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 4.83,
+  "verdict": "弱",
+  "peak_pct": 1.42,
+  "n_pairs": 6746
+ },
+ {
+  "base": "RAY",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 5.62,
+  "verdict": "弱",
+  "peak_pct": 1.36,
+  "n_pairs": 9651
+ },
+ {
+  "base": "AERO",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 5.29,
+  "verdict": "弱",
+  "peak_pct": 1.36,
+  "n_pairs": 7426
+ },
+ {
+  "base": "SOL",
+  "leg": "USD1",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.88,
+  "verdict": "弱",
+  "peak_pct": 1.35,
+  "n_pairs": 1569205
+ },
+ {
+  "base": "2Z",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 7.38,
+  "verdict": "弱",
+  "peak_pct": 1.34,
+  "n_pairs": 2626
+ },
+ {
+  "base": "DYDX",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.86,
+  "verdict": "弱",
+  "peak_pct": 1.33,
+  "n_pairs": 21103
+ },
+ {
+  "base": "SOL",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.76,
+  "verdict": "弱",
+  "peak_pct": 1.32,
+  "n_pairs": 1312088
+ },
+ {
+  "base": "OPEN",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 12.87,
+  "verdict": "弱",
+  "peak_pct": 1.26,
+  "n_pairs": 96
+ },
+ {
+  "base": "BONK",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 10.96,
+  "verdict": "弱",
+  "peak_pct": 1.25,
+  "n_pairs": 609
+ },
+ {
+  "base": "LDO",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.8,
+  "verdict": "弱",
+  "peak_pct": 1.23,
+  "n_pairs": 3540
+ },
+ {
+  "base": "AVNT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.66,
+  "verdict": "弱",
+  "peak_pct": 1.22,
+  "n_pairs": 7424
+ },
+ {
+  "base": "ADA",
+  "leg": "USD1",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 11.12,
+  "verdict": "弱",
+  "peak_pct": 1.21,
+  "n_pairs": 7372
+ },
+ {
+  "base": "SOMI",
+  "leg": "USDC",
+  "anchor_ms": 1787769300000,
+  "anchor_iso": "2026-08-26 18:35 UTC",
+  "div_pct": 5.49,
+  "verdict": "弱",
+  "peak_pct": 1.19,
+  "n_pairs": 15712
+ },
+ {
+  "base": "LAYER",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 4.29,
+  "verdict": "弱",
+  "peak_pct": 1.19,
+  "n_pairs": 108
+ },
+ {
+  "base": "SNX",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 6.41,
+  "verdict": "弱",
+  "peak_pct": 1.18,
+  "n_pairs": 5455
+ },
+ {
+  "base": "NIGHT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 5.3,
+  "verdict": "弱",
+  "peak_pct": 1.17,
+  "n_pairs": 12076
+ },
+ {
+  "base": "APT",
+  "leg": "USDC",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 8.56,
+  "verdict": "弱",
+  "peak_pct": 1.15,
+  "n_pairs": 22510
+ },
+ {
+  "base": "ASTER",
+  "leg": "USD1",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 10.95,
+  "verdict": "弱",
+  "peak_pct": 1.09,
+  "n_pairs": 11380
+ },
+ {
+  "base": "LINEA",
+  "leg": "USDC",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 6.62,
+  "verdict": "弱",
+  "peak_pct": 1.06,
+  "n_pairs": 3885
+ },
+ {
+  "base": "JUP",
+  "leg": "FDUSD",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 5.33,
+  "verdict": "弱",
+  "peak_pct": 0.77,
+  "n_pairs": 2058
+ },
+ {
+  "base": "RE",
+  "leg": "USD1",
+  "anchor_ms": 1787158560000,
+  "anchor_iso": "2026-08-19 16:56 UTC",
+  "div_pct": 21.44,
+  "verdict": "无成交",
+  "peak_pct": 0.0,
+  "n_pairs": 0
+ },
+ {
+  "base": "CHIP",
+  "leg": "USD1",
+  "anchor_ms": 1787375460000,
+  "anchor_iso": "2026-08-22 05:11 UTC",
+  "div_pct": 17.33,
+  "verdict": "无成交",
+  "peak_pct": 0.0,
+  "n_pairs": 0
+ },
+ {
+  "base": "XPL",
+  "leg": "USD1",
+  "anchor_ms": 1787375400000,
+  "anchor_iso": "2026-08-22 05:10 UTC",
+  "div_pct": 17.28,
+  "verdict": "无成交",
+  "peak_pct": 0.0,
+  "n_pairs": 0
+ },
+ {
+  "base": "LINK",
+  "leg": "USD1",
+  "anchor_ms": 1787172780000,
+  "anchor_iso": "2026-08-19 20:53 UTC",
+  "div_pct": 8.47,
+  "verdict": "无成交",
+  "peak_pct": 0.0,
+  "n_pairs": 0
+ },
+ {
+  "base": "MET",
+  "leg": "USDC",
+  "anchor_ms": 1787376000000,
+  "anchor_iso": "2026-08-22 05:20 UTC",
+  "div_pct": 7.5,
+  "verdict": "无成交",
+  "peak_pct": 0.0,
+  "n_pairs": 0
+ },
+ {
+  "base": "TAO",
+  "leg": "USD1",
+  "anchor_ms": 1787375700000,
+  "anchor_iso": "2026-08-22 05:15 UTC",
+  "div_pct": 6.87,
+  "verdict": "无成交",
+  "peak_pct": 0.0,
+  "n_pairs": 0
+ }
+]

@@ -1,0 +1,14 @@
+# ===== 大数据缓存（均可重新拉取，不入库）=====
+fatfinger_scan_60d/klines_1m_60d/
+fatfinger_scan_60d/aggTrades_90s/
+fatfinger_scan_60d/klines_full/
+fatfinger_scan_60d/klines_1h/
+
+# ===== 日志 / 中间产物 =====
+*.log
+*.jsonl
+__pycache__/
+*.pyc
+fatfinger_scan_60d/scan_div_run*.log
+fatfinger_scan_60d/focus_run*.log
+fatfinger_scan_60d/run_all_60d.log
