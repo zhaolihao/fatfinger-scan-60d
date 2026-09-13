@@ -131,18 +131,16 @@
       <div class="sp-list" id="spList" data-page-node-id="gpDar1k4FMokjD5YnEdDqF"></div>
     </div>
     <div id="fillPanel" data-page-node-id="Jj2lDBoMKmt7DmWblSPtHA">
-      <div class="sp-head" data-page-node-id="LEeHBb58RACGgWYC3xccZd"><span data-page-node-id="0v9jaR8tgsyhR6sBjA1NMk">回测成交标记（四脚本）</span><button id="fillClose" data-page-node-id="yM7yCkqTOGim5RUY7ej48g">×</button></div>
+      <div class="sp-head" data-page-node-id="LEeHBb58RACGgWYC3xccZd"><span data-page-node-id="0v9jaR8tgsyhR6sBjA1NMk">回测成交标记（最新·新退出 vs 旧退出）</span><button id="fillClose" data-page-node-id="yM7yCkqTOGim5RUY7ej48g">×</button></div>
       <div class="fill-legend" data-page-node-id="gToAL98HwfkOGDK9rqCAXH">
-        <span data-page-node-id="uJxF1VRaBYONfFGNYYfq6k"><i style="background:#F0B90B" data-page-node-id="OC25DZuCXcT6ltRskNtJhf"></i>react</span>
-        <span data-page-node-id="MXBH3Xy0DhNJVDuE9c9Xp1"><i style="background:#2EBDFF" data-page-node-id="c78aP1dfnN1GfYXNwpTaD8"></i>resident</span>
-        <span data-page-node-id="zpz25kSXVx8DVUDqFA2knD"><i style="background:#B07CFF" data-page-node-id="1jwpQGlpqtBcemVot68Tvu"></i>exp11</span>
-        <span data-page-node-id="FghzhnXyNK2myLQaUgR3FG"><i style="background:#FF6B9D" data-page-node-id="jvFtHUW4Xq94OUSJyCHI4q"></i>exp50</span>
+        <span data-page-node-id="MXBH3Xy0DhNJVDuE9c9Xp1"><i style="background:#2EBDFF" data-page-node-id="c78aP1dfnN1GfYXNwpTaD8"></i>resident(±10%)</span>
+        <span data-page-node-id="zpz25kSXVx8DVUDqFA2knD"><i style="background:#B07CFF" data-page-node-id="1jwpQGlpqtBcemVot68Tvu"></i>exp11(±15%)</span>
         <span data-page-node-id="NX5WwrWikTMucYo1icKZNj">●开仓 ◇平仓</span>
       </div>
       <div class="sp-filter" data-page-node-id="OtKNt1HbgXW7thLVm9cXEQ">
-        <button data-fv="all" class="active" data-page-node-id="oA5907qiMFTJS4HUAQHtWV">全部版本</button>
-        <button data-fv="新" data-page-node-id="lw4t0wBfiPN82LFpHrcuaX">新(1s)</button>
-        <button data-fv="旧" data-page-node-id="C3oSXYRmk7pXWgevC9OFww">旧(60s)</button>
+        <button data-fv="all" data-page-node-id="oA5907qiMFTJS4HUAQHtWV">全部版本</button>
+        <button data-fv="新" class="active" data-page-node-id="lw4t0wBfiPN82LFpHrcuaX">新退出(最新)</button>
+        <button data-fv="旧" data-page-node-id="C3oSXYRmk7pXWgevC9OFww">旧退出(对比)</button>
         <button id="fillClearFocus" style="display:none;background:#2b3139;color:var(--acc);border-color:var(--acc);" data-page-node-id="VEhWYj2bnkltPVgXQZRRc6">显示全部点位</button>
         <label data-page-node-id="GDzeryYw6SQdJUt4QlM3iL">显示<select id="fillTypSel" data-page-node-id="AivzafErwnuFlziHub8tCq">
           <option value="配对" selected data-page-node-id="BsbG7eLVYj4tyy6WpQnGJZ">完整交易(开+平)</option>
@@ -191,7 +189,7 @@ let ALL_FILLS = {AKEUSDT:[], BULLAUSDT:[]};  // 回测成交明细(按币种分�
 let TRADE_PAIRS = {AKEUSDT:[], BULLAUSDT:[]}; // 配对后的完整交易(开仓+平仓)
 let FILL_IDX = null;     // 每个成交在当前 DISP 中的 bar 索引
 let fillOpen = false;    // 成交面板开关
-let fillVer = 'all';     // all / 新 / 旧
+let fillVer = '新';      // 默认展示最新(新退出逻辑); all=全部, 旧=旧退出对比
 let fillTyp = '配对';    // 配对(开+平) / 开仓 / 平仓
 let focusedFillMs = null; // 单点聚焦: 点击单笔时设为该笔 ts; null=未聚焦
 let focusedPair = null;   // 配对聚焦: 点击一笔完整交易时设为该 pair; null=未聚焦
@@ -334,7 +332,7 @@ function buildPairs(){
       bj_close: cl?cl.bj:null,
     });
     for(const f of arr){
-      const key = f.scr+'|'+f.kind+'|'+f.side;
+      const key = f.scr+'|'+f.ver+'|'+f.side;
       if(f.typ==='开仓'){
         if(openStack[key]) pairs.push(mk(openStack[key], null)); // 上一个开仓没平, 先收尾
         openStack[key]=f;

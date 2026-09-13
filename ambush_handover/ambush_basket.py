@@ -215,7 +215,7 @@ positions_open = {}  # symbol -> {"pos_side","qty","entry","O","order_id"} 我�
 last_ref = {}        # symbol -> 上次挂单锚价O；价格偏移>=REPRICE_THRESH才重挂(降撤挂比,防-4400)
 reprice_cooldown = {} # symbol -> 轮次号；该轮之前不重挂(挂新失败-4400后进入冷却,保留旧单防洞)
 REPRICE_COOLDOWN = 30 # 重挂失败后冷却轮数(≈30min),等量化风控窗口滚过再试
-ANCHOR_SEC = 60      # 【秒级锚价】锚价刷新周期(秒)=接针判定窗口。60=分钟级(旧行为);
+ANCHOR_SEC = 1       # 【秒级锚价】锚价刷新周期(秒)=接针判定窗口。1=秒级(与回测对齐); CEO 20260913 定
                      #  1=秒级(只接1秒内的真乌龙, 阴跌时锚价跟着降→不接)。
                      #  触发判定本身走WS(亚秒级), 变的只是"锚价O每隔多久重取一次"。
                      #  回测(2026-09-08 XAN逐笔43.9万笔): 60s锚价→XAN阴跌触发亏损;
@@ -253,7 +253,7 @@ peak_high = {}        # symbol -> 近期 WS 最高中间价（空单限价卖空
 VOL_WINDOW = 10       # 滚动窗口（分钟）【改】60→10(CEO: 太不敏感)
 VOL_MULT = 4.0        # 阈值 = EMA × 该倍数
 EMA_ALPHA = 0.3       # 【改】中位数→EMA(α=0.3)：越靠近当前权重越大，风暴前兆即刻反映
-MIN_DEPTH = 0.10      # 动态阈值下限【CEO定 20260907凌晨】4%→10%：去掉噪音，只打大针，M直接市价
+MIN_DEPTH = 0.08      # 动态阈值下限【CEO定 20260913】统一到8%(易改)
 MAX_DEPTH = 1.0       # 动态阈值上限【CEO定 20260906】6%→不封顶(1.0=100% 实际等于不设限，EMA×4自调节)
 DYN_THRESH = False    # 动态阈值开关（--dyn-thresh 开启；关闭则用固定 DEPTH，可回退）
 min_amp_hist = {}     # symbol -> deque(最近 VOL_WINDOW 分钟的分钟振幅 (high-low)/low)
@@ -265,15 +265,9 @@ REBOUND_ON = False
 REBOUND_PCT = 0.008   # (回滚用) 反弹确认幅度 0.8%
 REBOUND_WAIT_S = 15.0 # (回滚用) 反弹确认窗口 15s
 pend_m = {}           # (sym,pos_side) -> {"tid","anc","depth","t0","ext"} 待反弹确认的 M 腿(REBOUND_ON=False 时不使用)
-DEPTH = 0.10          # 固定阈值默认值（与 --depth 默认一致；动态阈值关闭/冷启动时回退用，【CEO定】4%→10%）
-# 【CEO定 20260907·风暴模式】M成交后挂"同向"深位限价单接第二刀(CEO:逆向反弹单会亏,FLOCK实测-5.2%MAE；
-# 同向8笔回测全胜)——多=成交价×0.95，空=成交价×1.05，窗口STORM_WINDOW_S，成交后TP=STORM_TP/SL=STORM_SL。
-# 回测(CDN逐笔,storm_path_sim_samedir.py): 8笔同向 TP5%/SL10% EV+4.49%/笔 8胜0负。
-STORM_ON = True
-STORM_DEPTH = 0.05    # 风暴单深位：M成交价±5%（回测几何等价）
-STORM_WINDOW_S = 300.0# 风暴单窗口5分钟(未成交撤单)
-STORM_TP = 0.05       # 风暴单止盈5%(相对风暴成交价)
-STORM_SL = 0.10       # 风暴单止损10%(=默认STOP_LOSS,交易所端STOP_MARKET)
+DEPTH = 0.08          # 固定阈值默认值（与 --depth 默认一致；动态阈值关闭/冷启动时回退用，【CEO定 20260913】统一8%）
+# 风暴模式已删除(20260911 CEO定): 不再派生同向追单接第二刀, 所有成交腿统一走 on_fill 流水线
+# (SL先挂/路线A/路线B自适应)。相关常量 STORM_* 一并移除。
 
 # ── 常驻埋伏模式（CEO定 20260907，--mode resident）────────────
 # A组=20个惯犯(杠杆≥50, 30天10%穿刺榜)双侧常驻条件单: TAKE_PROFIT_MARKET
@@ -282,10 +276,10 @@ STORM_SL = 0.10       # 风暴单止损10%(=默认STOP_LOSS,交易所端STOP_MAR
 #   不带reduceOnly即可开仓。workingType=CONTRACT_PRICE(最新价,标记价平滑过可能不触发);
 #   priceProtect保持关闭(插针恰是最新价/标记价价差最大时刻)。
 #   vs 常驻限价单关键差异: 限价"穿过≠成交"(针跳空越过挂价无成交), 条件单"触发必成交"。
-# 入场全平台托管(代理断/WS断/检测延迟免疫); 成交后仍复用 on_fill 流水线(SL先挂/TP/风暴/路线A)。
+# 入场全平台托管(代理断/WS断/检测延迟免疫); 成交后仍复用 on_fill 流水线(SL先挂/路线A/路线B)。
 # CEO三决策: ①杠杆门槛50(B方案名单) ②单边成交不撤另一侧 ③常驻阈值10%。
 MODE = "react"        # react=响应式触发+市价(130币) | resident=常驻条件单(20惯犯)
-RESIDENT_DEPTH = 0.10 # 常驻触发深度±10%（CEO定）
+RESIDENT_DEPTH = 0.08 # 常驻触发深度±8%（CEO 20260913 定: 统一到8%, 易改）
 INSTANCE = ""         # 实例标签(空=默认): 隔离锁文件/state文件/日志前缀, 允许多个resident进程并行跑不同币种
 RESIDENT_REPEG = 0.02 # 锚价漂移≥2%才重挂（复用 --reprice 语义）
 RESIDENT_MIN_GAP = 0.08  # 冻结侧安全距离: 触发价距现价<8%→上移重挂(异常兜底)
@@ -316,18 +310,21 @@ entry_cooldown = {}   # symbol -> 截止时间戳（响应式入场冷却，防�
 near_miss_ts = {}     # symbol -> 上次打"逼近"日志时间（节流，证明bot在盯盘且不空转）
 GROUP_A = []          # 响应式市价入场组
 GROUP_B = []          # 响应式限价入场组（限价=WS最低）
-TP_PCT = 0.03         # 止盈幅度（相对成交价）；路线A目标 & TP限价
-ROUTE_B_MODE = "wait" # 路线B: 'wait'=挂TP+SL后留仓(交易所管理); 'close'=原5s市价平(回滚用)
+TP_PCT = 0.03         # 止盈幅度（相对成交价）；路线A默认参考
+ROUTE_B_MODE = "adaptive"  # 路线B: 'adaptive'=自适应退出(对齐回测新逻辑); 旧'wait'/'close'已弃用
 
-# ── 新20币实验开关（2026-09-07 CEO定，默认全关，不影响现有 react/resident 进程）────
-# REB_ANCHOR: 回弹目标从"相对成交价"改为"相对锚价"(锚价×(1∓reb))，与回测口径一致
-# ROUTE_BRANCH: 5s后不走"留仓等TP/SL"，改"分岔式退出"(盈利→保本+移动止盈 / 亏损→快砍 / 超时强制平)
-REB_ANCHOR = False    # --reb-anchor 回弹相对锚价开关
-REB_PCT = 0.05        # --reb 回弹阈值(相对锚价, 默认5%)
-ROUTE_BRANCH = False  # --route-branch 分岔式退出开关
-BRANCH_TR = 0.02      # --branch-tr 移动止盈回撤(默认2%)
-BRANCH_CUT = 0.02     # --branch-cut 快砍止损(默认2%)
-BRANCH_HOLD = 900.0   # --branch-hold 最长持有秒(默认900=15分钟)
+# ── 路线A/B 新退出逻辑（对齐回测新逻辑 2026-09-11 CEO定）────────────
+# 路线A: 锚价O×(1∓REB_PCT) 带内 + T_A(1s) 窗口 → 市价平（REB_ANCHOR 常开）
+# 路线B(锚价O冻结): ①亏损上限B_LOSS(8%) ②利润带B_PROFIT(6%) ③反转撤退B_REVERSAL(1%) ④时间止损B_TIME(10s)
+REB_ANCHOR = True     # 回弹相对锚价(锚价×(1∓REB_PCT))
+REB_PCT = 0.04        # 路线A回弹阈值(相对锚价, 4%)
+B_PROFIT = 0.06       # 路线B利润带(回到冻结锚价±6%内平)
+B_REVERSAL = 0.01     # 路线B反转撤退(从最佳回归点反跑1%平；CEO定 20260913，回测1%优于2% +1.7U)
+B_TIME = 10.0         # 路线B时间止损(秒, 自路线A窗口结束起算)
+B_LOSS = 0.08         # 路线B亏损上限/交易所端止损兜底(相对成交价8%，对齐回测最终档 b_loss=0.08)
+BRANCH_TR = 0.02      # (保留) 旧分岔移动止盈回撤
+BRANCH_CUT = 0.02     # (保留) 旧分岔快砍
+BRANCH_HOLD = 900.0   # (保留) 旧分岔最长持有
 
 # ── 对比模式 CMP（2026-09-05 改）──────────────────────────────
 # 取消按币分 A/B 组：每个币每次触发同时下 市价(M)+限价(L) 两单(各 NOTIONAL U)，
@@ -876,8 +873,6 @@ async def on_fill(order_id, entry_px, qty, sym):
         stats["cmp_M_fills"] += 1
     elif cmp_tag == "L":
         stats["cmp_L_fills"] += 1
-    elif cmp_tag == "S":
-        stats["cmp_S_fills"] = stats.get("cmp_S_fills", 0) + 1
     elif cmp_tag == "R":
         stats["cmp_R_fills"] = stats.get("cmp_R_fills", 0) + 1
     record_fill_csv(sym, pos_side, cmp_tag, sub, O, entry_px, qty, o.get("depth"))
@@ -892,22 +887,15 @@ async def on_fill(order_id, entry_px, qty, sym):
                                             "O": O, "order_id": order_id, "cmp": cmp_tag}
     # 【止损+止盈补丁】成交→立刻挂交易所端条件单（~0.2s，判定在币安服务器，断网也生效）。
     # 必须在任何等待之前挂：ZEST 型 1-2 秒冲 10% 的失控拉盘，晚一秒都是真金白银。
-    # 风暴腿(S)独立参数：TP=STORM_TP 5%，SL=STORM_SL 10%(=默认STOP_LOSS)。
-    storm_leg = (cmp_tag == "S")
-    await place_stop_algo(sym, pos_side, entry_px, sub)   # 10% 止损（STOP_MARKET, closePosition）
-    await place_tp_limit(sym, pos_side, entry_px, sub,
-                         tp_pct=(STORM_TP if storm_leg else None))    # 3% 止盈（风暴腿5%）
-    # 【风暴模式·CEO定 20260907】M/R成交 → 派生同向风暴单接第二刀(后台任务,不阻塞本协程)
-    # R腿(常驻条件单成交)同样接风暴——CEO确认 20260907。
-    if cmp_tag in ("M", "R") and STORM_ON:
-        tid_m = o.get("trigger_id") or (sub.split(":")[0] if sub else "")
-        spawn(_storm_leg(sym, pos_side, entry_px, tid_m))
+    # (风暴单已删除, 20260911 CEO定；所有腿均走 on_fill 统一流水线：SL/路线A/路线B)
+    await place_stop_algo(sym, pos_side, entry_px, sub, stop_pct=B_LOSS)   # 8% 止损兜底(对齐回测B亏损上限)
+    # 主腿(R/M)不挂固定TP: 利润由路线A(锚价4%)/路线B利润带(6%)循环捕获, 与回测一致
     last_ref.pop(sym, None)   # 该币单已成交消耗→清锚价，平完仓回来必重挂(防误判"未动"漏补单)
     # 【路线A 目标】回弹到目标价就平仓。
-    # 默认：相对成交价 (entry×(1±TP_PCT))；风暴腿用 STORM_TP 5%。
+    # 默认：相对成交价 (entry×(1±TP_PCT))。
     # --reb-anchor 开启：相对锚价 (O×(1∓REB_PCT))，与回测口径一致（CEO 20260907 新20币实验）。
-    tpp_a = STORM_TP if storm_leg else TP_PCT
-    if REB_ANCHOR and not storm_leg:
+    tpp_a = TP_PCT
+    if REB_ANCHOR:
         target = O * (1 - REB_PCT) if pos_side == "LONG" else O * (1 + REB_PCT)
     else:
         target = entry_px * (1 + tpp_a) if pos_side == "LONG" else entry_px * (1 - tpp_a)
@@ -930,27 +918,10 @@ async def on_fill(order_id, entry_px, qty, sym):
             # 仓位还在→保留 TP/SL 条件单：万一 bot 崩了/断网，交易所端仍保护仓位
             log.critical(f"[告警] {sym} {pos_side} 路线A未平掉，保留仓位+TP/SL 待收尾/重试")
         return
-    # 路线B：窗口内未快速回弹 → 不再 5s 市价硬平（今天亏损的根因），
-    # 改为已挂好的 TP+SL 留仓由交易所管理；统计记一笔，释放本协程。
-    if ROUTE_B_MODE == "close":
-        ok = await market_close(sym, pos_side, qty, entry_px, O, "B", tag=f"CMP-{cmp_tag}" if cmp_tag else "")
-        if ok:
-            positions_open.pop((sym, pos_side, sub), None)
-            await cancel_stop_algo(sym, pos_side, sub=sub); await cancel_tp_limit(sym, pos_side, sub=sub)
-        else:
-            log.critical(f"[告警] {sym} {pos_side} 路线B未平掉，保留仓位+TP/SL 待收尾/重试")
-        return
-    # 【分岔式退出 --route-branch】5s后看盈亏分岔（CEO 20260907 新20币实验）。
-    # 盈利→止损上移保本 + 移动止盈(最高点回撤tr%)；亏损→快砍-cut%；超时→强制市价平。
-    # 注意：这层"移动止盈/快砍"需本机盯盘(交易所托管单只能固定价)，IP漂移/断网会失效；
-    #       但交易所端固定 STOP_LOSS 仍挂着兜底，最坏回到固定 SL 保护，不会裸仓。
-    if ROUTE_BRANCH:
-        await branch_exit(sym, pos_side, qty, entry_px, O, sub, cmp_tag)
-        return
-    stats["routeB"] += 1
-    log.info(f"[routeB] {sym} {pos_side} @{entry_px} {('cmp='+cmp_tag+' ') if cmp_tag else ''}未快速回弹 → 留仓等 TP/SL "
-             f"(TP={target:.8f} / SL={entry_px*(1-STOP_LOSS) if pos_side=='LONG' else entry_px*(1+STOP_LOSS):.8f}) "
-             f"| positions_open 保留, 待交易所平仓后复核释放")
+    # 路线B：路线A(锚价∓4%/1s)未触发 → 自适应退出(锚价O冻结: 亏损上限8%/利润带6%/反转撤退1%/时间止损10s)
+    # 交易所端8%止损已挂兜底(bot崩溃也不裸仓)。
+    await route_b_adaptive(sym, pos_side, qty, entry_px, O, sub, cmp_tag)
+    return
 
 async def branch_exit(sym, pos_side, qty, entry_px, O, sub="", cmp_tag=""):
     """【分岔式退出 --route-branch】5s 未快速回弹后，看当前盈亏分岔：
@@ -1025,6 +996,52 @@ async def branch_exit(sym, pos_side, qty, entry_px, O, sub="", cmp_tag=""):
         log.info(f"[branch] {sym} {pos_side} 超时{BRANCH_HOLD:.0f}s强制平仓")
     else:
         log.critical(f"[告警] {sym} {pos_side} 分岔超时未平掉，保留仓位+SL 待收尾/重试")
+
+
+async def route_b_adaptive(sym, pos_side, qty, entry_px, O, sub="", cmp_tag=""):
+    """【路线B·自适应退出(对齐回测新逻辑 2026-09-11)】路线A(锚价±4%/3s)未触发后接管。
+    锚价O在成交时已冻结。四道出口(本机轮询, 交易所端B_LOSS=8%止损兜底, bot崩溃也不裸仓):
+      ① 亏损上限 B_LOSS(8%, 相对成交价) 硬砍
+      ② 利润带 B_PROFIT(6%, 回到冻结锚价±6%内) 平
+      ③ 反转撤退 B_REVERSAL(1%, 从最佳回归点反跑) 平
+      ④ 时间止损 B_TIME(10s, 自路线A窗口结束起算) 强制市价平"""
+    is_long = pos_side == "LONG"
+    best = entry_px
+    t0 = time.time()
+    tag = f"routeB-{cmp_tag}" if cmp_tag else "routeB"
+    while time.time() - t0 < T_A + B_TIME and not shutdown.is_set():
+        m = mid(sym)
+        if m is None:
+            await asyncio.sleep(0.1); continue
+        # ① 亏损上限(交易所端同值止损兜底)
+        loss_cap = entry_px * (1 - B_LOSS) if is_long else entry_px * (1 + B_LOSS)
+        if (is_long and m <= loss_cap) or (not is_long and m >= loss_cap):
+            return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B亏损上限", tag=tag), sym, pos_side, sub)
+        # ② 利润带(冻结锚价±B_PROFIT)
+        bp = O * (1 - B_PROFIT) if is_long else O * (1 + B_PROFIT)
+        if (is_long and m >= bp) or (not is_long and m <= bp):
+            return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B利润带", tag=tag), sym, pos_side, sub)
+        # ③ 反转撤退(从最佳回归点反跑B_REVERSAL)
+        if is_long:
+            if m > best: best = m
+            if m <= best * (1 - B_REVERSAL):
+                return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B反转撤退", tag=tag), sym, pos_side, sub)
+        else:
+            if m < best: best = m
+            if m >= best * (1 + B_REVERSAL):
+                return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B反转撤退", tag=tag), sym, pos_side, sub)
+        await asyncio.sleep(0.1)
+    # ④ 时间止损
+    return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B超时", tag=tag), sym, pos_side, sub)
+
+
+async def _finish_routeB(ok, sym, pos_side, sub):
+    if ok:
+        positions_open.pop((sym, pos_side, sub), None)
+        await cancel_stop_algo(sym, pos_side, sub=sub)
+        await cancel_tp_limit(sym, pos_side, sub=sub)
+    else:
+        log.critical(f"[告警] {sym} {pos_side} 路线B未平掉，保留仓位+SL 待收尾/重试")
 
 
 async def market_close(sym, pos_side, qty, entry, O, route,
@@ -1137,70 +1154,6 @@ async def l_leg_watch(oid, sym):
         else:
             log.warning(f"[CMP-L撤单✗] {sym} 订单{oid} 撤单失败: {str(r)[:60]} → 留给兜底轮询复核")
 
-# ── 风暴模式【CEO定 20260907】────────────────────────────────
-async def _storm_leg(sym, pos_side, m_fill_px, tid):
-    """M成交后派生"同向"风暴限价单：接第二刀(继续跌/继续涨)。
-    多=M成交价×(1-STORM_DEPTH) 买；空=M成交价×(1+STORM_DEPTH) 卖。
-    窗口 STORM_WINDOW_S 未成交→撤单；成交→ on_fill（TP=STORM_TP 5%, SL=STOP_LOSS 10%）。
-    回测依据(storm_path_sim_samedir.py, CDN逐笔)：同向8笔 TP5/SL10 EV+4.49%/笔 8胜0负；
-    逆向反弹单4笔1负(FLOCK MAE-5.2%, CEO否决逆向)。"""
-    if not STORM_ON:
-        return
-    bs = "BUY" if pos_side == "LONG" else "SELL"
-    lim = m_fill_px * (1 - STORM_DEPTH) if pos_side == "LONG" else m_fill_px * (1 + STORM_DEPTH)
-    lim = rnd_price(sym, lim)
-    qty = calc_qty(sym, lim, NOTIONAL)
-    sub_s = f"{tid}:S"
-    c, r = await asyncio.to_thread(
-        signed_request, "POST", "/papi/v1/um/order",
-        {"symbol": sym, "side": bs, "positionSide": pos_side,
-         "type": "LIMIT", "timeInForce": "GTC",
-         "price": f"{lim:.8f}".rstrip("0").rstrip("."),
-         "quantity": f"{qty:.8f}".rstrip("0").rstrip(".")})
-    if c != 200:
-        log.warning(f"[风暴✗] {sym} {pos_side} tid={tid} 限价单失败: {str(r)[:70]}")
-        return
-    oid = int(r["orderId"])
-    orders[oid] = {"symbol": sym, "side": bs, "price": lim,
-                   "qty": qty, "O": m_fill_px, "round": -1,
-                   "cmp": "S", "trigger_id": tid, "sub": sub_s}
-    log.info(f"[风暴✓] {sym} tid={tid} 同向{'买' if pos_side == 'LONG' else '卖'}挂出 x{qty} @{lim:.8f} "
-             f"(M成交{m_fill_px:.8g}×{STORM_DEPTH:.0%}, {STORM_WINDOW_S:.0f}s未成交撤单, TP{STORM_TP:.0%}/SL{STORM_SL:.0%})")
-    # 窗口监督：REST 0.5s 轮询(不等WS——Clash卡流实测晚11s+)；成交→on_fill；超时→撤单
-    t0 = time.time()
-    while not shutdown.is_set() and time.time() - t0 < STORM_WINDOW_S:
-        await asyncio.sleep(0.5)
-        if oid not in orders:      # WS/其他路径已确认成交
-            return
-        c, r = await asyncio.to_thread(signed_request, "GET", "/papi/v1/um/order",
-                                       {"symbol": sym, "orderId": oid})
-        if c != 200:
-            continue
-        st = r.get("status")
-        if st == "FILLED":
-            log.info(f"[风暴成交✓] {sym} 订单{oid} REST确认 @{r.get('avgPrice', '?')} "
-                     f"(第{int((time.time()-t0)*2)+1}次轮询) → 挂TP{STORM_TP:.0%}/SL{STORM_SL:.0%}")
-            await on_fill(oid, float(r.get("avgPrice") or r.get("price") or 0),
-                          float(r.get("executedQty") or 0), sym)
-            return
-    # ── 超时撤单 ──
-    if oid not in orders:
-        return
-    c, r = await asyncio.to_thread(signed_request, "DELETE", "/papi/v1/um/order",
-                                   {"symbol": sym, "orderId": oid})
-    if c == 200:
-        orders.pop(oid, None)
-        log.info(f"[风暴撤单✓] {sym} 订单{oid} {STORM_WINDOW_S:.0f}s未成交 → 已撤 (风暴窗口结束)")
-    else:
-        c2, r2 = await asyncio.to_thread(signed_request, "GET", "/papi/v1/um/order",
-                                         {"symbol": sym, "orderId": oid})
-        if c2 == 200 and r2.get("status") == "FILLED":
-            log.info(f"[风暴成交✓] {sym} 订单{oid} 撤单竞态: 实际已成交 @{r2.get('avgPrice', '?')} → 按成交处理")
-            await on_fill(oid, float(r2.get("avgPrice") or r2.get("price") or 0),
-                          float(r2.get("executedQty") or 0), sym)
-        else:
-            log.warning(f"[风暴撤单✗] {sym} 订单{oid} 撤单失败: {str(r)[:60]} → 留给兜底轮询复核")
-
 # ── 常驻埋伏模式（CEO定 20260907，--mode resident）────────────
 def _resident_state_file():
     suf = f"_{INSTANCE}" if INSTANCE else ""
@@ -1303,6 +1256,7 @@ async def _place_conditional(sym, side, trigger, base, register=True):
         aid = int(r["algoId"])
         if register:
             res_cond[(sym, side)] = {"algoId": aid, "trigger": trigger, "base": base}
+            res_base[sym] = base   # 【P0修复 20260913】入场锚价回填: 成交后 on_fill_resident 取此作平仓锚O, 与回测口径一致(原漏赋值→永远回退entry_px)
             _resident_save()
             # last_ref 是 minute_cycle 的 LIMIT 重挂路径用的簿记; resident 的条件单跟随判定
             # 走 resident_loop 里的 cond["base"], 与此无关。此处仅登记备用, 不参与 resident 重挂。
@@ -1551,6 +1505,7 @@ async def resident_loop():
                     ok2, naid = r_place2
                     if ok2:
                         res_cond[(sym, sd)] = {"algoId": naid, "trigger": new_tr, "base": cur}
+                        res_base[sym] = cur   # 【P0修复】冻结上移时也同步锚价, 保证成交后O=最新base
                         _resident_save()
                         stats["res_freeze_shift"] = stats.get("res_freeze_shift", 0) + 1
                         log.warning(f"[常驻冻结上移] {sym} {sd} 触发@{tr2:.8g} 距现价仅{dist:.1%}"
@@ -1598,6 +1553,7 @@ async def resident_loop():
                         ok, new_aid = r_place
                         if ok:
                             res_cond[(sym, side)] = {"algoId": new_aid, "trigger": tr, "base": cur}
+                            res_base[sym] = cur   # 【P0修复】重挂(漂移≥2%)时也同步锚价, 保证成交后O=最新base(匹配回测"入场锚价")
                             _resident_save()
                             stats["res_replace"] = stats.get("res_replace", 0) + 1
                             if not cancel_ok:
@@ -2109,10 +2065,10 @@ async def reactive_entry_loop():
                     tid = f"T{cmp_seq_incr():04d}"
                     # 【CEO定 20260907·10%直接市价】反弹确认关闭(REBOUND_ON=False)——10%大针噪音已由
                     # 阈值过滤，确认等待实测让入场变差(DASH复盘少赚0.8%)。触发即市价M；
-                    # M成交后由 on_fill 派生"风暴单"(同向M成交价×0.95, 5min窗口, TP5/SL10)接第二刀。
+                    # 风暴单已删除(20260911 CEO定)，M成交后统一走 on_fill 流水线(路线A/路线B)。
                     p = {"tid": tid, "anc": anc, "depth": depth, "t0": now, "ext": cur}
                     log.info(f"[CMP触发✓] {sym} tid={tid} 锚{anc:.8f} -{depth:.0%} | "
-                             f"M立即市价开火(无反弹确认) | 成交后挂风暴单@成交价×{1-STORM_DEPTH:.2f}")
+                             f"M立即市价开火(无反弹确认) | 成交后走 on_fill 流水线(路线A/路线B)")
                     cmp_events[tid] = {"sym": sym, "pos_side": "LONG", "t": now, "anchor": anc,
                                        "thr": thr, "mkt_px": cur,
                                        "M_oid": None, "L_oid": None}   # 先登记(开火后要回填M_oid)
@@ -2159,11 +2115,10 @@ async def reactive_entry_loop():
                     await cancel_stop_algo(sym, "SHORT", quiet=True, sub=ksub[2])
                 if CMP_MODE:
                     tid = f"T{cmp_seq_incr():04d}"
-                    # 【CEO定 20260907·10%直接市价】空单对称：触发即市价卖空，M成交后挂同向风暴单
-                    # (成交价×1+STORM_DEPTH 接第二波冲高, 5min窗口, TP5/SL10)。
+                    # 【CEO定 20260907·10%直接市价】空单对称：触发即市价卖空；风暴单已删除(20260911 CEO定)。
                     p = {"tid": tid, "anc": anc, "depth": depth, "t0": now, "ext": cur}
                     log.info(f"[CMP触发✓空] {sym} tid={tid} 锚{anc:.8f} +{depth:.0%} | "
-                             f"M立即市价开火(无回落确认) | 成交后挂风暴单@成交价×{1+STORM_DEPTH:.2f}")
+                             f"M立即市价开火(无回落确认) | 成交后走 on_fill 流水线(路线A/路线B)")
                     cmp_events[tid] = {"sym": sym, "pos_side": "SHORT", "t": now, "anchor": anc,
                                        "thr": thr_up, "mkt_px": cur,
                                        "M_oid": None, "L_oid": None}   # 先登记(开火后要回填M_oid)
@@ -2288,7 +2243,7 @@ async def main():
     ap.add_argument("--vol-mult", type=float, default=4.0, help="动态阈值倍数(默认4)")
     ap.add_argument("--vol-window", type=int, default=10, help="动态阈值窗口分钟(默认10, EMA加权)")
     ap.add_argument("--target", type=float, default=0.03, help="路线A回归目标(默认3%%)")
-    ap.add_argument("--ta", type=float, default=3.0, help="路线A窗口秒(默认3)")
+    ap.add_argument("--ta", type=float, default=1.0, help="路线A窗口秒(默认1)")
     ap.add_argument("--hold-b", type=float, default=5.0, help="路线B强制平仓秒(默认5)")
     ap.add_argument("--max-rounds", type=int, default=0, help="跑N轮停(0=无限)")
     ap.add_argument("--reprice", type=float, default=0.02, help="重挂阈值(默认0.02=2%%)：价格相对上次挂单价偏移>=此值才撤旧挂新，否则保留原单不撤(降撤挂比)")
@@ -2326,7 +2281,7 @@ async def main():
     ap.add_argument("--instance", default="", help="实例标签(空=默认): 隔离锁文件/state文件/日志前缀, 允许多resident进程并行")
     ap.add_argument("--resident-depth", type=float, default=0.10, help="常驻触发深度(默认10%%, 实验可设15%%)")
     ap.add_argument("--reb-anchor", action="store_true", help="回弹目标改相对锚价(实验,默认关=相对成交价)")
-    ap.add_argument("--reb", type=float, default=0.05, help="回弹阈值(相对锚价,默认5%%,配合--reb-anchor)")
+    ap.add_argument("--reb", type=float, default=0.04, help="回弹阈值(相对锚价,默认4%%=对齐回测最终档,配合--reb-anchor)")
     ap.add_argument("--route-branch", action="store_true", help="分岔式退出(实验,默认关=留仓等TP/SL)")
     ap.add_argument("--branch-tr", type=float, default=0.02, help="移动止盈回撤(默认2%%)")
     ap.add_argument("--branch-cut", type=float, default=0.02, help="快砍止损(默认2%%)")
@@ -2412,7 +2367,7 @@ async def main():
         log.info(f"乌龙指埋伏篮子·常驻模式 | {len(symbols)}惯犯×2侧 TAKE_PROFIT_MARKET 条件单 "
                  f"BUY@锚-{RESIDENT_DEPTH:.0%}/SELL@锚+{RESIDENT_DEPTH:.0%} | 平台托管触发(代理/WS/检测延迟免疫) | "
                  f"漂移{RESIDENT_REPEG:.0%}重挂 | 单边成交不撤另一侧(冻结) | "
-                 f"成交后 SL{STOP_LOSS:.0%}/TP{TP_PCT:.0%}/风暴单同向×{STORM_DEPTH:.0%}窗口{STORM_WINDOW_S:.0f}s"
+                 f"成交后 SL{B_LOSS:.0%}/路线A(锚价{REB_PCT:.0%}/{T_A:.0f}s)/路线B自适应"
                  + (f" | 【实验】回弹锚价{REB_PCT:.0%}/{T_A:.0f}s + 分岔(tr{BRANCH_TR:.0%}/cut{BRANCH_CUT:.0%}/hold{BRANCH_HOLD:.0f}s)"
                     if REB_ANCHOR or ROUTE_BRANCH else ""))
     else:
@@ -2435,7 +2390,7 @@ async def main():
             log.info(f"动态阈值ON: 阈值=clamp(EMA(α={EMA_ALPHA:g})×{VOL_MULT:g}, {MIN_DEPTH:.1%}~{_cap_txt}) "
                      f"窗口{VOL_WINDOW}分钟 | 冷启动回退{DEPTH:.0%} | "
                      + ("M腿反弹确认≥{:.1%}/{:.0f}s".format(REBOUND_PCT, REBOUND_WAIT_S) if REBOUND_ON
-                        else f"M触发即市价(无确认) | 风暴单{'ON 同向×' + format(STORM_DEPTH, '.0%') + ' 窗口' + format(STORM_WINDOW_S, '.0f') + 's TP' + format(STORM_TP, '.0%') + '/SL' + format(STORM_SL, '.0%') if STORM_ON else 'OFF'}"))
+                        else f"M触发即市价(无确认) | 成交后走 on_fill 流水线(路线A锚价{REB_PCT:.0%}/{T_A:.0f}s + 路线B自适应)"))
         else:
             log.info(f"动态阈值OFF: 固定阈值DEPTH={DEPTH:.0%}")
         log.info(f"阈值DEPTH={DEPTH:.0%} | 退出逻辑两单一致(只比入场执行) | 同币两仓用子仓键 M/L 独立追踪")

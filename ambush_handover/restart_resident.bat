@@ -13,4 +13,4 @@ REM  旧日志归档请在杀进程**之前**手工做: cp resident_v4_out.tmp l
 REM  (放本 bat 里会被上一次失败启动留下的 0 字节 tmp 覆盖成空, 丢掉孤儿单对账线索)
 cd /d "%~dp0"
 
-"C:\Users\Administrator\AppData\Local\Programs\Python\Python312\python.exe" ambush_basket.py --symbols-file resident20_draft.json --notional 10 --lev 0 --tp 0.05 --mode resident --anchor-sec 1 --anchor-jump-gate 0 > resident_v4_out.tmp 2>&1
+"C:\Users\Administrator\AppData\Local\Programs\Python\Python312\python.exe" ambush_basket.py --symbols-file resident20_draft.json --notional 10 --lev 0 --tp 0.05 --mode resident --resident-depth 0.08 --reb-anchor --anchor-sec 1 --anchor-jump-gate 0 > resident_v4_out.tmp 2>&1
