@@ -307,8 +307,10 @@ FILTERS = {}         # symbol -> {tick, step, minQty, minNotional}
 tp_limits = {}        # (sym, pos_side) -> orderId  在册的止盈限价单
 anchors = {}          # symbol -> 锚价O（实时盘口更新，用于平仓判断）
 price_hist = {}       # symbol -> deque([(ts_ms, price), ...]) 最近300ms价格历史，触发判断用100ms窗口锚价
+_AT_CNT = {0: 0}      # aggTrade处理计数器，用于心跳诊断
+_RAW_CNT = {0: 0}     # aggTrade原始消息计数器，用于格式诊断
 _MAIN_LOOP = None    # 主事件循环引用，供子线程提交on_fill用
-PRICE_HIST_MS = 500   # 保留最近500ms，取400ms前的价格作触发锚价
+PRICE_HIST_MS = 300   # 保留最近300ms，取80ms前的价格作触发锚价
 dip_low = {}          # symbol -> 近期 WS 最低中间价（B组/CMP 多单限价入场价）
 peak_high = {}        # symbol -> 近期 WS 最高中间价（空单限价卖空入场价，对称 dip_low）
 
@@ -658,7 +660,7 @@ async def _ws_instant_check(sym: str, px: float, src: str):
         anc_trig = None
         if _hist:
             for _hts, _hpx in _hist:
-                if _now_ms - _hts >= 400:
+                if _now_ms - _hts >= 80:
                     anc_trig = _hpx
         if not anc_trig:
             anc_trig = anc  # 历史不够则回退到实时锚价
@@ -758,7 +760,7 @@ async def ws_book_loop(symbols):
                             # 取100ms前的价格：找最靠近(_ts_bt - 100ms)的历史价格
                             _anc_bt = None
                             for _hts, _hpx in _hist_trig:
-                                if _ts_bt - _hts >= 400:  # >=400ms前的价格
+                                if _ts_bt - _hts >= 80:  # >=80ms前的价格
                                     _anc_bt = _hpx
                             if _anc_bt and _anc_bt > 0:
                                 _dev_bt = abs(_mid_bt / _anc_bt - 1)
@@ -778,7 +780,7 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
     与 ws_book_loop 并行运行，提供逐笔成交价数据源。
     消息量比 bookTicker 大（热门币每秒几十条），但只更新字典不做计算，开销极小。"""
     streams = "/".join(f"{s.lower()}@aggTrade" for s in symbols)
-    uri = f"{FSTREAM_WS}/stream?streams={quote(streams, safe='')}"
+    uri = f"{FSTREAM_WS}/stream?streams={streams}"  # 不quote()，@保持原样，否则Binance WS不识别
     while not shutdown.is_set():
         try:
             async with websockets.connect(uri, proxy=PROXY or None, ping_interval=20,
@@ -791,12 +793,18 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
                         d = json.loads(msg).get("data") or json.loads(msg)
                     except Exception:
                         continue
+                    _RAW_CNT[0] += 1
+                    if _RAW_CNT[0] % 10000 == 0:
+                        log.info(f"[AT原始] 第{_RAW_CNT[0]}条 e={d.get('e','?')} keys={list(d.keys())[:5]}")
                     if not isinstance(d, dict) or d.get("e") != "aggTrade":
                         continue
                     # P3: aggTrade数据校验 — price<=0 时丢弃
                     _px_at = float(d["p"])
                     if _px_at <= 0:
                         continue
+                    _AT_CNT[0] += 1
+                    if _AT_CNT[0] % 1000 == 0:
+                        log.info(f"[AT心跳] 已处理{_AT_CNT[0]}条aggTrade")
                     trade_prices[d["s"]] = {"price": _px_at,
                                             "ts": int(d.get("T") or time.time() * 1000)}
                     # 【平仓快路径】aggTrade同款: 有持仓就立即WS回调判定(逐笔成交价, 比盘口更精细)
@@ -818,7 +826,7 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
                     _anc_at_diag = None
                     if _hist_at_diag:
                         for _hts, _hpx in _hist_at_diag:
-                            if _ts_at_ms - _hts >= 400:
+                            if _ts_at_ms - _hts >= 80:
                                 _anc_at_diag = _hpx
                     if _anc_at_diag:
                         _dev_at_diag = abs(_px_at / _anc_at_diag - 1)
@@ -835,7 +843,7 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
                         _anc_at = None
                         if _hist_at:
                             for _hts, _hpx in _hist_at:
-                                if _ts_at_ms - _hts >= 400:
+                                if _ts_at_ms - _hts >= 80:
                                     _anc_at = _hpx
                         if not _anc_at:
                             _anc_at = anchors.get(_sym_at)  # 历史不够则回退实时锚价
@@ -2335,7 +2343,7 @@ async def reactive_entry_loop():
             anc_trig = None
             if _hist_mc:
                 for _hts, _hpx in _hist_mc:
-                    if _now_mc_ms - _hts >= 400:
+                    if _now_mc_ms - _hts >= 80:
                         anc_trig = _hpx
             if not anc_trig:
                 anc_trig = anc  # 历史不够则回退实时锚价
