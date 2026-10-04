@@ -24,7 +24,7 @@ ambush_basket.py — 58 惯犯币乌龙指埋伏（多币单进程版）
   python ambush_basket.py --ip 1.2.3.4                                 # 指定允许出口IP
   python ambush_basket.py                                              # 全58币无限轮
 """
-import asyncio, json, time, hmac, hashlib, logging, os, sys, argparse, signal
+import asyncio, json, time, hmac, hashlib, logging, os, sys, argparse, signal, random
 import traceback
 from collections import deque
 from urllib.parse import urlencode, quote
@@ -35,24 +35,17 @@ import websockets
 # ── 企业微信通知（沿用多稳定币预埋伏脚本的同一个机器人；非阻塞守护线程发送）──
 # 导入失败不能拖垮交易主流程，故包 try/except，缺失时自动降级为只写日志。
 try:
-    import wecom_notify
+    import wecom_notify_spot as wecom_notify
 except Exception as _e:                       # pragma: no cover
     wecom_notify = None
-    print(f"[通知] wecom_notify 导入失败，通知已关闭: {_e}")
+    print(f"[通知] wecom_notify_spot 导入失败，通知已关闭: {_e}")
 
-PROXY = os.environ.get("PROXY_URL") or ""  # 本地无需代理，IP已在白名单
-# ── SNI绕过：DNS预解析为IP，之后所有URL用IP拼接，TLS握手SNI=IP不被过滤 ──
+PROXY = os.environ.get("PROXY_URL") or ""
+# ── 现货直连：api.binance.com / stream.binance.com，不需要IP绕SNI ──
 import socket as _sock
 import ssl as _sslmod
-_FAPI_IP = _sock.gethostbyname("fapi.binance.com")
-_API_IP = _sock.gethostbyname("api.binance.com")
-_FSTREAM_IP = _sock.gethostbyname("fstream.binance.com")
-PAPI = f"https://{_FAPI_IP}"
-FSTREAM_WS = f"wss://{_FSTREAM_IP}"
-_FAPI_HOST = "fapi.binance.com"
-_API_HOST = "api.binance.com"
-_FSTREAM_HOST = "fstream.binance.com"
-# WS专用SSL context：不检查hostname（因为用IP连接），不验证证书
+PAPI = "https://api.binance.com"       # 现货REST
+SAPI_WS = "wss://stream.binance.com:9443"  # 现货WS
 _ws_ssl = _sslmod.SSLContext(_sslmod.PROTOCOL_TLS_CLIENT)
 _ws_ssl.check_hostname = False
 _ws_ssl.verify_mode = _sslmod.CERT_NONE
@@ -74,53 +67,49 @@ KEY = os.environ.get("BN_KEY") or _ENV.get("BN_KEY", "")
 SECRET = os.environ.get("BN_SECRET") or _ENV.get("BN_SECRET", "")
 # IP 守卫：白名单内的出口 IP 集合。Clash 轮换到非白名单节点时 -2015 → 禁止挂新单。
 EXPECTED_IPS = {ip.strip() for ip in (os.environ.get("BN_IP") or _ENV.get("BN_IP", "")).split(",") if ip.strip()}
+EXPECTED_IPS = set()  # 纸面模式：清空IP白名单，不做IP守卫
 _ip_alert_throttle = {"ts": 0.0}   # 企业微信 IP 告警节流(同一次异常每300s最多1条)
 
 # ── REST：401 自动换连接重试（Clash 多出口 IP 核心对策）────────
 import threading
 _cli = [None]
-_cli_sync = [None]       # 同步客户端（utility 函数用）
-_cli_lock = threading.Lock()
-
-def client_sync():
-    """同步 httpx 客户端（exit_ip/binance_ip_ok/clock_resync 等 utility 函数用）。"""
-    with _cli_lock:
-        if _cli_sync[0] is None:
-            _cli_sync[0] = httpx.Client(proxy=PROXY or None, timeout=15, verify=False)
-            _cli_sync[0].headers.update({"User-Agent": "ambush-basket-1", "X-MBX-APIKEY": KEY,
-                                         "Host": _FAPI_HOST})
-        return _cli_sync[0]
-
-def reset_client_sync():
-    with _cli_lock:
-        try:
-            if _cli_sync[0]:
-                _cli_sync[0].close()
-        except Exception:
-            pass
-        _cli_sync[0] = httpx.Client(proxy=PROXY or None, timeout=15, verify=False)
-        _cli_sync[0].headers.update({"User-Agent": "ambush-basket-1", "X-MBX-APIKEY": KEY,
-                                     "Host": _FAPI_HOST})
-
-async def client():
-    with _cli_lock:
+_cli_lock = asyncio.Lock()
+async def client_sync():
+    async with _cli_lock:
         if _cli[0] is None:
             _cli[0] = httpx.AsyncClient(proxy=PROXY or None, timeout=15, verify=False)
-            _cli[0].headers.update({"User-Agent": "ambush-basket-1", "X-MBX-APIKEY": KEY,
-                                     "Host": _FAPI_HOST})
+            _cli[0].headers.update({"User-Agent": "ambush-spot-paper-1", "X-MBX-APIKEY": KEY})
         return _cli[0]
 
 async def reset_client():
-    # 加锁：并发撤单(Semaphore6)多线失败时会同时调 reset，避免互相关掉对方连接→雪崩
-    with _cli_lock:
+    async with _cli_lock:
         try:
             if _cli[0]:
                 await _cli[0].aclose()
         except Exception:
             pass
         _cli[0] = httpx.AsyncClient(proxy=PROXY or None, timeout=15, verify=False)
-        _cli[0].headers.update({"User-Agent": "ambush-basket-1", "X-MBX-APIKEY": KEY,
-                                 "Host": _FAPI_HOST})
+        _cli[0].headers.update({"User-Agent": "ambush-spot-paper-1", "X-MBX-APIKEY": KEY})
+
+# 同步版本（供非async工具函数使用）
+_cli_sync = [None]
+_cli_sync_lock = threading.Lock()
+def client_sync():
+    with _cli_sync_lock:
+        if _cli_sync[0] is None:
+            _cli_sync[0] = httpx.Client(proxy=PROXY or None, timeout=15, verify=False)
+            _cli_sync[0].headers.update({"User-Agent": "ambush-spot-paper-1", "X-MBX-APIKEY": KEY})
+        return _cli_sync[0]
+
+def reset_client_sync():
+    with _cli_sync_lock:
+        try:
+            if _cli_sync[0]:
+                _cli_sync[0].close()
+        except Exception:
+            pass
+        _cli_sync[0] = httpx.Client(proxy=PROXY or None, timeout=15, verify=False)
+        _cli_sync[0].headers.update({"User-Agent": "ambush-spot-paper-1", "X-MBX-APIKEY": KEY})
 
 import re as _re
 
@@ -142,42 +131,12 @@ _IP_PROBES = (
 )
 
 def exit_ip():
-    """当前 httpx 连接的 Clash 出口 IP（与下单同一连接，所见即所得）。
-    多站冗余：任一站点返回 IPv4 即采用；全部不可达才返回 None。"""
-    for url in _IP_PROBES:
-        try:
-            r = client_sync().get(url, timeout=8)
-            m = _re.search(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})", r.text or "")
-            if m:
-                return m.group(1)
-        except Exception:
-            reset_client_sync()   # 换连接=换出口节点，下一站可能就通
-    return None
+    """现货纸面模式：不需要IP守卫。"""
+    return "0.0.0.0"
 
 def binance_ip_ok():
-    """【探测失败兜底】探测站全挂(ip=None)时，不再把"查不到"当成"IP 不对"，
-    而是直接问币安：用同一连接发一个最轻量的签名查询，币安肯收=放行，-2015=真的没白名单。
-    返回 (放行bool, 说明str)。"""
-    try:
-        srv = client_sync().get(f"{PAPI}/fapi/v1/time", timeout=10).json().get("serverTime")
-        p = {"timestamp": int(srv), "recvWindow": 60000}
-        qs = urlencode(p)
-        sig = hmac.new(SECRET.encode(), qs.encode(), hashlib.sha256).hexdigest()
-        r = client_sync().get(f"{PAPI}/fapi/v2/openOrders?{qs}&signature={sig}", timeout=12)
-        try:
-            js = r.json() if r.content else {}
-        except Exception:
-            js = {}
-        code = js.get("code") if isinstance(js, dict) else None
-        if r.status_code == 200 and not code:
-            return True, "币安放行(出口在白名单)"
-        if code == -2015 or r.status_code == 401:
-            return False, "币安拒收 -2015(出口确实未白名单)"
-        return False, f"币安返回 code={code} {str(js)[:60]}"
-    except Exception as e:
-        # 连币安都不通 = 网络真断了，此时本来也下不了单，保守拦截
-        return False, f"币安不可达 {type(e).__name__}(保守拦截)"
-
+    """现货纸面模式：不需要IP守卫。"""
+    return True, "纸面模式直连"
 # ── 后台任务管理（成交处理 spawn 成独立任务，避免阻塞 WS 消息循环/分钟循环）──
 _bg = set()
 def spawn(coro):
@@ -190,6 +149,7 @@ def spawn(coro):
     _bg.add(t); t.add_done_callback(_bg.discard)
 
 OFF = 0  # 服务器时钟偏移(ms)
+PAPER_BALANCE = 1000.0  # 纸面模式虚拟USDT余额
 
 # 这些错误与出口 IP / 密钥 / 签名相关：换连接(换 Clash 节点)无效，必须立即返回真实错误码，
 # 不要当网络异常盲重试——否则会把 -2015(IP未白名单) 误报成 retries_exhausted，误导排查。
@@ -206,8 +166,7 @@ async def signed_request(method, path, params=None, tries=6):
         qs = urlencode(p)   # 【坑】中文 symbol 必须 urlencode 后再签名
         sig = hmac.new(SECRET.encode(), qs.encode(), hashlib.sha256).hexdigest()
         try:
-            cli = await client()
-            r = await cli.request(method, f"{PAPI}{path}?{qs}&signature={sig}", timeout=15)
+            r = await client_sync().request(method, f"{PAPI}{path}?{qs}&signature={sig}", timeout=15)
             try:
                 js = r.json() if r.content else {}
             except Exception:
@@ -231,37 +190,8 @@ async def signed_request(method, path, params=None, tries=6):
     return 0, {"error": "retries_exhausted"}
 
 async def public_get(path, params=None):
-    cli = await client()
-    r = await cli.get(f"{PAPI}{path}", params=params, timeout=20)
+    r = await client_sync().get(f"{PAPI}{path}", params=params, timeout=20)
     return r.status_code, (r.json() if r.content else {})
-
-def sync_signed_request(method, path, params=None, tries=6):
-    """同步版签名请求（utility 函数用：place_stop_algo_sync/_resident_load_cancel/_open_algo_orders等）。"""
-    params = dict(params or {})
-    for k in range(tries):
-        p = dict(params)
-        p["timestamp"] = int(time.time() * 1000) + OFF
-        p["recvWindow"] = 60000
-        qs = urlencode(p)
-        sig = hmac.new(SECRET.encode(), qs.encode(), hashlib.sha256).hexdigest()
-        try:
-            cli = client_sync()
-            r = cli.request(method, f"{PAPI}{path}?{qs}&signature={sig}", timeout=15)
-            try:
-                js = r.json() if r.content else {}
-            except Exception:
-                js = {"raw": (r.text or "")[:200]}
-            code = js.get("code") if isinstance(js, dict) else None
-            if code == -1021 and k < tries - 1:
-                _clock_resync()
-                continue
-            if r.status_code == 401 or (isinstance(code, int) and code in _NON_RETRY_CODES):
-                return r.status_code, js
-            return r.status_code, js
-        except Exception:
-            reset_client_sync()
-            time.sleep(0.5 * (k + 1))
-    return 0, {"error": "retries_exhausted"}
 
 # ── 日志 ─────────────────────────────────────────────────────
 os.makedirs("logs", exist_ok=True)
@@ -270,7 +200,7 @@ log = logging.getLogger("ambush_basket")
 log.setLevel(logging.INFO)
 _fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
 _sh = logging.StreamHandler(); _sh.setFormatter(_fmt); log.addHandler(_sh)
-_fh = logging.FileHandler(f"logs/ambush_basket_{tag}.log", encoding="utf-8")
+_fh = logging.FileHandler(f"logs/spot_paper_{tag}.log", encoding="utf-8")
 _fh.setFormatter(_fmt); log.addHandler(_fh)
 
 # ── 全局状态 ─────────────────────────────────────────────────
@@ -278,8 +208,6 @@ mids = {}            # symbol -> {"bid","ask","ts"}   (WS bookTicker)
 last_mid = {}        # symbol -> float  最后已知锚价（WS 过期/缺失时回退用，启动 prime）
 orders = {}          # orderId -> {symbol, side, price, qty, O, round}
 exits_in_progress = set()   # orderId 已触发退出流程
-exit_in_flight = set()     # 平仓占坑锁: 同一仓(方向键)同时只允许一张市价平仓单在飞
-                            # 防止 WS快路径 与 轮询路线A/B 同拍各发一张平仓单 → 双平/反向开仓(-2022根因之一)
 positions_open = {}  # symbol -> {"pos_side","qty","entry","O","order_id"} 我们开的仓
 last_ref = {}        # symbol -> 上次挂单锚价O；价格偏移>=REPRICE_THRESH才重挂(降撤挂比,防-4400)
 reprice_cooldown = {} # symbol -> 轮次号；该轮之前不重挂(挂新失败-4400后进入冷却,保留旧单防洞)
@@ -289,7 +217,9 @@ ANCHOR_SEC = 1       # 【秒级锚价】锚价刷新周期(秒)=接针判定窗
                      #  触发判定本身走WS(亚秒级), 变的只是"锚价O每隔多久重取一次"。
                      #  回测(2026-09-08 XAN逐笔43.9万笔): 60s锚价→XAN阴跌触发亏损;
                      #  ≤5s锚价→XAN不触发; FORM真插针(单秒-9%)仍能接到。
-
+ANCHOR_JUMP_GATE = 0.0  # 【锚价跳变闸门】0=关闭。>0时: 单次刷新若 |新价-锚价|/锚价 > 该值,
+                        #  视为插针不更新锚价(墙钉在原地等砸), 防止锚价被针尖污染后
+                        #  把反向单挂到错误价位。建议 0.08(8%)。
 FREEZE_PULL_MARGIN = 0.05  # 【补丁2】冷却期爬单守护：旧单距真实价<5% 强制撤（防缓涨/缓跌爬进死单）
 stats = {"rounds": 0, "fills": 0, "routeA": 0, "routeB": 0, "fallback": 0, "pnl": 0.0,
          "cov_min": 999, "cov_sum": 0, "cov_n": 0, "anchor_stale": 0, "ip_bad_rounds": 0,
@@ -305,15 +235,25 @@ FILTERS = {}         # symbol -> {tick, step, minQty, minNotional}
 # B组：同条件 → 限价买（价=近期 WS 最低，想接在尖针最低点）
 # 两者都不挂"被动限价单"，成交后走 A/B 路线平仓。
 tp_limits = {}        # (sym, pos_side) -> orderId  在册的止盈限价单
-anchors = {}          # symbol -> 锚价O（实时盘口更新，用于平仓判断）
-price_hist = {}       # symbol -> deque([(ts_ms, price), ...]) 最近300ms价格历史，触发判断用100ms窗口锚价
-_MAIN_LOOP = None    # 主事件循环引用，供子线程提交on_fill用
-PRICE_HIST_MS = 300   # 保留最近300ms，取100ms前的价格作触发锚价
+anchors = {}          # symbol -> 锚价O（每分钟刷新，响应式阈值判定用）
 dip_low = {}          # symbol -> 近期 WS 最低中间价（B组/CMP 多单限价入场价）
 peak_high = {}        # symbol -> 近期 WS 最高中间价（空单限价卖空入场价，对称 dip_low）
 
 # ── 动态阈值（滚动波动率，2026-09-06 加）──────────────────────
-DEPTH = 0.06          # 固定阈值（【CEO定 20260918】统一6%）
+# 【为什么】固定阈值(如4%)是"死尺子"：平静币一分钟只晃0.5%，2%就算异动该抓，
+# 但4%尺子太钝；大行情时币一分钟晃3%，4%又是"正常晃动"会误触发刷手续费。
+# 【怎么做】每币维护过去 VOL_WINDOW=10 分钟的分钟振幅(high-low)/low，用 EMA(α=EMA_ALPHA) 加权——
+# 越靠近当前权重越大(CEO: 60分钟中位太钝，10%的暴动前兆被老样本扯平；UAI 实测 60min窗口 2.9% vs 10min EMA 6%封顶)。
+# 阈值 = clamp(EMA × VOL_MULT, MIN_DEPTH, MAX_DEPTH)。平静→收紧到6%地板；风暴酝酿→EMA快速爬升自动抬高门槛(不封顶)。
+# 【关键陷阱】必须用"过去"分钟(不含当前这分钟)的滞后波动率——插针本身就是波动率瞬间飙升，
+# 若用当前分钟的波动率，插针发生时基线瞬间变大→阈值跟着涨→自己把自己的信号吃掉。
+VOL_WINDOW = 10       # 滚动窗口（分钟）【改】60→10(CEO: 太不敏感)
+VOL_MULT = 4.0        # 阈值 = EMA × 该倍数
+EMA_ALPHA = 0.3       # 【改】中位数→EMA(α=0.3)：越靠近当前权重越大，风暴前兆即刻反映
+MIN_DEPTH = 0.06      # 动态阈值下限【CEO定 20260918】统一到6%(易改)
+MAX_DEPTH = 1.0       # 动态阈值上限【CEO定 20260906】6%→不封顶(1.0=100% 实际等于不设限，EMA×4自调节)
+DYN_THRESH = False    # 动态阈值开关（--dyn-thresh 开启；关闭则用固定 DEPTH，可回退）
+min_amp_hist = {}     # symbol -> deque(最近 VOL_WINDOW 分钟的分钟振幅 (high-low)/low)
 L_TIMEOUT_S = 5.0     # 【旧L腿·已停用】保留常量供回滚；L挂单逻辑已被风暴单取代
 L_DEPTH_EXTRA = 0.05  # 【旧L腿·已停用】保留常量供回滚
 # 【CEO定 20260907·反弹确认关闭】DASH复盘：确认等待1.4s让空单入场差0.8%(少赚)，10%大针噪音已由阈值过滤 → M触发即市价。
@@ -322,7 +262,7 @@ REBOUND_ON = False
 REBOUND_PCT = 0.008   # (回滚用) 反弹确认幅度 0.8%
 REBOUND_WAIT_S = 15.0 # (回滚用) 反弹确认窗口 15s
 pend_m = {}           # (sym,pos_side) -> {"tid","anc","depth","t0","ext"} 待反弹确认的 M 腿(REBOUND_ON=False 时不使用)
-DEPTH = 0.04          # 固定阈值（临时改为4%验证修改效果，验证后改回6%）
+DEPTH = 0.06          # 固定阈值默认值（与 --depth 默认一致；动态阈值关闭/冷启动时回退用，【CEO定 20260918】统一6%）
 # 风暴模式已删除(20260911 CEO定): 不再派生同向追单接第二刀, 所有成交腿统一走 on_fill 流水线
 # (SL先挂/路线A/路线B自适应)。相关常量 STORM_* 一并移除。
 
@@ -330,7 +270,7 @@ DEPTH = 0.04          # 固定阈值（临时改为4%验证修改效果，验证
 # A组=20个惯犯(杠杆≥50, 30天10%穿刺榜)双侧常驻条件单: TAKE_PROFIT_MARKET
 #   BUY@锚×0.90(跌破触发市价接针) / SELL@锚×1.10(涨破触发市价开空)。
 #   语法依据(官方文档): TP买单=价格≤stopPrice触发; TP卖单=价格≥stopPrice触发;
-#   不带reduceOnly即可开仓。workingType=CONTRACT_PRICE(最新价,标记价平滑过可能不触发);
+#   现货开仓=买入。workingType=CONTRACT_PRICE(最新价,标记价平滑过可能不触发);
 #   priceProtect保持关闭(插针恰是最新价/标记价价差最大时刻)。
 #   vs 常驻限价单关键差异: 限价"穿过≠成交"(针跳空越过挂价无成交), 条件单"触发必成交"。
 # 入场全平台托管(代理断/WS断/检测延迟免疫); 成交后仍复用 on_fill 流水线(SL先挂/路线A/路线B)。
@@ -349,26 +289,38 @@ res_fills = {}        # (sym, pos_side) -> ts: 成交去重(WS与REST兜底双�
 res_orphan = {}       # (sym, side, algoId) -> True: 重挂时撤旧失败的单, 下轮重试撤(防孤儿单堆积)
 
 
+def dynamic_depth(sym):
+    """返回该币当前的触发深度(阈值)。动态阈值开启且有历史→clamp(EMA振幅×VOL_MULT, MIN, MAX)；
+    否则回退固定 DEPTH。EMA(α=EMA_ALPHA) 从旧到新加权——越靠近当前权重越大(CEO: 60分钟中位太钝)。
+    副作用即特性：刚爆过的针会抬高一柄同币第二腿的门槛（天然防连刀）。"""
+    if not DYN_THRESH:
+        return DEPTH
+    hist = min_amp_hist.get(sym)
+    if not hist or len(hist) < 3:
+        return DEPTH
+    e = hist[0]
+    for x in list(hist)[1:]:
+        e = EMA_ALPHA * x + (1 - EMA_ALPHA) * e
+    return min(MAX_DEPTH, max(MIN_DEPTH, e * VOL_MULT))
+
 entry_cooldown = {}   # symbol -> 截止时间戳（响应式入场冷却，防同一次插针重复触发）
 _entry_lock = {}     # (sym, side) -> bool，触发后置True，防止同币并发下单（协程堆积根因修复）
 near_miss_ts = {}     # symbol -> 上次打"逼近"日志时间（节流，证明bot在盯盘且不空转）
 GROUP_A = []          # 响应式市价入场组
 GROUP_B = []          # 响应式限价入场组（限价=WS最低）
-TP_PCT = 0.03         # 路线A止盈幅度（相对成交价3%）
+TP_PCT = 0.03         # 止盈幅度（相对成交价）；路线A默认参考
 ROUTE_B_MODE = "adaptive"  # 路线B: 'adaptive'=自适应退出(对齐回测新逻辑); 旧'wait'/'close'已弃用
 
-# ── 路线A/B 退出逻辑（2026-09-27 修改：统一用成交价判断）────────────
-# 路线A: 成交价×(1+TP_PCT) 盈利3%才平（T_A=1s窗口内）
-# 路线B: 成交价×(1+B_PROFIT_PCT) 盈利1%即平（T_A窗口后）
-# 止损: 成交价×(1-B_LOSS) 亏损3%止损
-REB_ANCHOR = False    # 改用成交价判断（不再用锚价）
-REB_PCT = 0.03        # 路线A盈利阈值（相对成交价3%）
-B_PROFIT = 0.06       # (保留) 旧路线B利润带，已弃用
-B_REVERSAL = 0.005    # (保留) 旧路线B反转撤退，已弃用
+# ── 路线A/B 新退出逻辑（对齐回测新逻辑 2026-09-11 CEO定）────────────
+# 路线A: 锚价O×(1∓REB_PCT) 带内 + T_A(1s) 窗口 → 市价平（REB_ANCHOR 常开）
+# 路线B(锚价O冻结): ①亏损上限B_LOSS(8%) ②利润带B_PROFIT(6%) ③反转撤退B_REVERSAL(1%) ④时间止损B_TIME(10s)
+REB_ANCHOR = True     # 回弹相对锚价(锚价×(1∓REB_PCT))
+REB_PCT = 0.06        # 路线A回弹阈值(相对锚价, 6%)
+B_PROFIT = 0.06       # 路线B利润带 — 已弃用(盈利即平优先触发)，保留供回退
+B_REVERSAL = 0.01     # 路线B反转撤退 — 已弃用(回测证明亏损位触发是bug)，保留供回退
 B_TIME = 10.0         # 路线B时间止损(秒, 自路线A窗口结束起算)
-B_LOSS = 0.03         # 止损幅度（相对成交价3%）
-B_BREAKEVEN = True    # 路线B盈利即平开关
-B_PROFIT_PCT = 0.01   # 路线B盈利1%即平（相对成交价）
+B_LOSS = 0.03         # 路线B亏损上限/止损兜底(相对成交价3%，回测最优档)
+B_BREAKEVEN = True   # 路线B盈利即平(价格回到成交价就市价平, 回测最优+22.03U vs 当前+19.39U)
 BRANCH_TR = 0.02      # (保留) 旧分岔移动止盈回撤
 BRANCH_CUT = 0.02     # (保留) 旧分岔快砍
 BRANCH_HOLD = 900.0   # (保留) 旧分岔最长持有
@@ -411,7 +363,7 @@ halt_reason = ""
 # 【接飞刀策略的生命线】埋伏单是"接下落的刀"：插针的典型形态是超调
 # （跌 8% 触发 → 继续跌到 12% → 才回弹）。开最高杠杆时保证金 = 名义/杠杆，
 # 反向 4~5% 就被强平 —— 等不到回弹就出局了。低杠杆才能"扛住超调、等到回弹"。
-LEVERAGE = 5         # 目标杠杆；0 = 用交易所最高杠杆（不推荐，见上）。子账户上限5x(-4421)
+LEVERAGE = 2         # 目标杠杆；0 = 用交易所最高杠杆（不推荐，见上）
 FEE_MAKER = 0.0002   # 埋伏单成交（LIMIT = maker）
 FEE_TAKER = 0.0005   # 市价平仓（MARKET = taker）
 
@@ -419,7 +371,7 @@ FEE_TAKER = 0.0005   # 市价平仓（MARKET = taker）
 # 【为什么必须挂】ZEST 事故（2026-09-03）：失控拉盘 6s +22.7%，路线B 5s 市价硬平
 # 吃 -2.25U。交易所端条件单的触发判定在币安服务器上——我们断网/死机/WS 断流它照常触发，
 # 是唯一不依赖本机网络的保护。triggerPrice=成交价×(1±STOP_LOSS)，相对成交价而非锚价，
-# 与埋伏阈值(6%/8%/10%)天然不重合。closePosition=true → 触发后全平且仓位归零自动失效。
+# 与埋伏阈值(6%/8%/10%)天然不重合。纸面模式：无交易所端条件单。
 # 只挂止损不挂止盈：止盈由路线A/B 管，挂了会打架出孤儿单。
 STOP_LOSS = 0.10     # 止损幅度(相对成交价)；0=关闭
 # 【-4130 修复】币安对同一(币, 方向)只允许存在一张 closePosition=true 的全平止损单。
@@ -479,8 +431,8 @@ def circuit_state():
 # ── 启动准备：规格 + 杠杆 ────────────────────────────────────
 def load_filters(symbols):
     c = 0; js = {}
-    for url in (f"{PAPI}/fapi/v1/exchangeInfo",
-                "https://fapi.binance.com/fapi/v1/exchangeInfo"):
+    for url in (f"{PAPI}/api/v3/exchangeInfo",
+                "https://api.binance.com/api/v3/exchangeInfo"):
         try:
             r = client_sync().get(url, timeout=30)
             if r.status_code == 200 and r.content[:1] in (b"[", b"{"):
@@ -514,79 +466,26 @@ def load_filters(symbols):
 
 lev_set = set()   # 已成功设置最高杠杆的币（IP 不在白名单时跳过，待恢复后自动补齐）
 
-async def set_max_leverage(symbols):
-    """每个币开到最高杠杆（取杠杆分层第一档 maxInitialLeverage）。已设过的跳过；
-    出口 IP 未白名单(-2015)时整体跳过，待 IP 恢复后由分钟循环自动补齐。"""
-    todo = [s for s in symbols if s not in lev_set]
-    if not todo:
-        return
-    done = 0
-    ip_blocked = False
-    for sym in todo:
-        if ip_blocked:
-            continue
-        c, br = await signed_request("GET", "/fapi/v1/leverageBracket", {"symbol": sym})
-        if isinstance(br, dict) and br.get("code") == -2015:
-            ip_blocked = True
-            log.warning(f"[杠杆] 出口IP未白名单(-2015) → 跳过杠杆设置，待IP恢复后自动补齐")
-            continue
-        try:
-            # papi/v1/um/leverageBracket 返回 list，bracket[0] 的 initialLeverage 即该币最高杠杆
-            maxlev = int(br[0]["brackets"][0]["initialLeverage"])
-        except Exception:
-            log.warning(f"[杠杆] {sym} 取分层失败: {str(br)[:80]}")
-            continue
-        # 目标杠杆取 min(设定值, 交易所上限)。LEVERAGE=0 才回退到最高杠杆（不推荐）。
-        target_lev = min(LEVERAGE, maxlev) if LEVERAGE and LEVERAGE > 0 else maxlev
-        c, r = await signed_request("POST", "/fapi/v1/leverage", {"symbol": sym, "leverage": target_lev})
-        if c == 200:
-            lev_set.add(sym); done += 1
-        else:
-            log.warning(f"[杠杆] {sym} 设置 {target_lev}x 失败: {str(r)[:80]}")
-        await asyncio.sleep(0.05)
-    if done:
-        log.info(f"[杠杆] 本轮新增最高杠杆 {done} 个（累计 {len(lev_set)}/{len(symbols)}）")
+def set_max_leverage(symbols):
+    """现货无杠杆，空操作。"""
+    pass
 
 lev_locks = {}   # symbol -> asyncio.Lock（避免同币并发重复设杠杆）
 args = None      # 模块级默认：main() 里 global args 重新赋值为真实参数。
                  # 【教训】ensure_leverage 引用了 main 内部的 args，而它不在模块级 ——
                  # 昨天没有这行时，首次真实触发即 NameError 崩溃（15:25/15:36 两次）。
 async def ensure_leverage(sym):
-    """触发时惰性设最高杠杆（一次/币，lev_set 缓存去重）。357 币启动时批量设=714 次签名请求会卡数分钟且易限频，
-    故改为仅在实际触发交易的币上设一次；--no-lev 时整体跳过。"""
-    if (args and args.no_lev) or sym in lev_set:
-        return
-    lock = lev_locks.get(sym) or lev_locks.setdefault(sym, asyncio.Lock())
-    async with lock:
-        if sym in lev_set:
-            return
-        c, br = await signed_request( "GET", "/fapi/v1/leverageBracket", {"symbol": sym})
-        if isinstance(br, dict) and br.get("code") == -2015:
-            log.warning(f"[杠杆] {sym} 出口IP未白名单(-2015) → 暂不设（IP恢复后下次触发重试）")
-            return
-        try:
-            maxlev = int(br[0]["brackets"][0]["initialLeverage"])
-        except Exception:
-            return
-        target_lev = min(LEVERAGE, maxlev) if LEVERAGE and LEVERAGE > 0 else maxlev
-        c, r = await signed_request( "POST", "/fapi/v1/leverage",
-                                       {"symbol": sym, "leverage": target_lev})
-        if c == 200:
-            lev_set.add(sym)
-            log.info(f"[杠杆] {sym} 设为 {target_lev}x（触发惰性设置）")
-        else:
-            log.warning(f"[杠杆] {sym} 设 {target_lev}x 失败: {str(r)[:80]}")
-            if isinstance(r, dict) and r.get("code") == -4421:
-                lev_set.add(sym)
-                log.info(f"[杠杆] {sym} -4421子账户限制 → 加入缓存不再重试")
+    """现货无杠杆，空操作。"""
+    pass
 
 async def prime_anchors(symbols):
     """启动时为每个币取一个回退锚价。
     【修复】改用批量 bookTicker API（不带 symbol 参数），1 个请求返回全市场，
-    彻底消除逐个请求导致的并发失败和限流问题。"""
+    彻底消除 627 个逐个请求导致的并发失败和限流问题。
+    成功率从 441/627(70%) 提升到接近 100%。"""
     done = 0
     try:
-        r = client_sync().get(f"{PAPI}/fapi/v1/ticker/bookTicker", params=None, timeout=20)
+        r = client_sync().get(f"{PAPI}/api/v3/ticker/bookTicker", params=None, timeout=20)
         if r.status_code == 200 and r.content[:1] == b"[":
             rows = {x["symbol"]: x for x in r.json() if isinstance(x, dict)}
             for sym in symbols:
@@ -599,7 +498,7 @@ async def prime_anchors(symbols):
                     continue
                 if b > 0 and a > 0 and a >= b:
                     last_mid[sym] = (b + a) / 2
-                    anchors[sym] = (b + a) / 2
+                    anchors[sym] = (b + a) / 2   # 同时初始化 anchors，确保 if sym in anchors 为 True
                     done += 1
         else:
             log.warning(f"[锚价] 批量 bookTicker 请求失败: status={r.status_code}")
@@ -613,10 +512,10 @@ def rest_refresh_anchors(stale_syms):
     为什么必须加：WS 断流时 last_mid 冻结在断流前的价格 → 锚价失真 → 重挂判定
     abs(O - last_ref) 恒≈0 永不触发 → 旧单距真实价可以无限拉开却不重挂
     （USELESS 事故：34 分钟 +10.6% 缓涨爬进旧 SELL 单，根因之一）。
-    /fapi/v1/ticker/bookTicker 不带 symbol 一次返回全市场 → 1 个请求覆盖全部 stale 币，
-    每轮最多调 1 次，不撞限流。public 端点无需签名，与 prime_anchors 同源(fapi)。"""
+    /api/v3/ticker/bookTicker 不带 symbol 一次返回全市场 → 1 个请求覆盖全部 stale 币，
+    每轮最多调 1 次，不撞限流。public 端点无需签名，与 prime_anchors 同源(spot)。"""
     try:
-        r = client_sync().get(f"{PAPI}/fapi/v1/ticker/bookTicker",
+        r = client_sync().get(f"{PAPI}/api/v3/ticker/bookTicker",
                          params=None, timeout=15)
         if r.status_code != 200 or not r.content or r.content[:1] != b"[":
             return set()
@@ -643,7 +542,7 @@ async def _ws_instant_check(sym: str, px: float, src: str):
     """方案1：WS回调即时检测——收到价格时立刻判断偏离，不等50ms轮询。
     在bookTicker/aggTrade回调中调用，0延迟触发。
     src='BT'(bookTicker中间价) 或 'AT'(aggTrade成交价)。
-    只做判断+触发，不阻塞WS消息循环（触发走spawn）。"""
+    现货纸面模式：只做LONG（做多），不做SHORT。"""
     try:
         if not CMP_MODE and not GROUP_A and not GROUP_B:
             return
@@ -651,66 +550,55 @@ async def _ws_instant_check(sym: str, px: float, src: str):
             return
         if sym in STARTUP_HELD:
             return
-        anc = anchors.get(sym)  # 平仓判断用实时锚价
-        # 触发判断改用100ms窗口锚价（price_hist里最老的价格）
-        _now_ms = int(time.time()*1000)
-        _hist = price_hist.get(sym)
-        anc_trig = None
-        if _hist:
-            for _hts, _hpx in _hist:
-                if _now_ms - _hts >= 80:
-                    anc_trig = _hpx
-        if not anc_trig:
-            anc_trig = anc  # 历史不够则回退到实时锚价
-        if not anc_trig or anc_trig <= 0:
+        anc = anchors.get(sym)
+        if not anc or anc <= 0:
             return
-        depth = DEPTH  # 固定阈值6%
+        depth = dynamic_depth(sym)
         now = time.time()
         open_pos = {(k[0], k[1]) for k in positions_open.keys()}
-        # 触发判断用100ms窗口锚价（anc_trig）
-        thr    = anc_trig * (1 - depth)
-        thr_up = anc_trig * (1 + depth)
+        # ── 多单：价格跌破锚价×(1-depth) ──
+        thr = anc * (1 - depth)
         if px < thr:
             pos_long = (sym, "LONG") in open_pos
             if not pos_long and entry_cooldown.get((sym, "LONG", src), 0) <= now:
                 if _entry_lock.get((sym, "LONG"), False):
                     return
                 _entry_lock[(sym, "LONG")] = True
-                await ensure_leverage(sym)
-                for ksub in [k for k in list(tp_limits.keys()) if k[0] == sym and k[1] == "LONG"]:
-                    await cancel_tp_limit(sym, "LONG", quiet=True, sub=ksub[2])
-                for ksub in [k for k in list(algo_stops.keys()) if k[0] == sym and k[1] == "LONG"]:
-                    await cancel_stop_algo(sym, "LONG", quiet=True, sub=ksub[2])
                 if CMP_MODE:
                     tid = f"T{cmp_seq_incr():04d}"
-                    p = {"tid": tid, "anc": anc_trig, "depth": depth, "t0": now, "ext": px}
-                    log.info(f"[CMP触发✓][WS即时] {sym} tid={tid} src={src} 锚{anc_trig:.8f}(窗口100ms) -{depth:.0%} | "
-                             f"M线程直发(0阻塞) | WS回调0延迟触发")
-                    cmp_events[tid] = {"sym": sym, "pos_side": "LONG", "t": now, "anchor": anc_trig,
+                    p = {"tid": tid, "anc": anc, "depth": depth, "t0": now, "ext": px}
+                    log.info(f"[CMP触发✓][WS即时] {sym} tid={tid} src={src} 锚{anc:.8f} -{depth:.0%} | "
+                             f"M立即纸面开火 | WS回调0延迟触发")
+                    cmp_events[tid] = {"sym": sym, "pos_side": "LONG", "t": now, "anchor": anc,
                                        "thr": thr, "mkt_px": px, "src": src,
                                        "M_oid": None, "L_oid": None}
-                    asyncio.create_task(asyncio.to_thread(sync_fire_cmp_m, sym, "LONG", p, px))
-            return
-        if px > thr_up:
-            pos_short = (sym, "SHORT") in open_pos
-            if not pos_short and entry_cooldown.get((sym, "SHORT", src), 0) <= now:
-                if _entry_lock.get((sym, "SHORT"), False):
-                    return
-                _entry_lock[(sym, "SHORT")] = True
-                await ensure_leverage(sym)
-                for ksub in [k for k in list(tp_limits.keys()) if k[0] == sym and k[1] == "SHORT"]:
-                    await cancel_tp_limit(sym, "SHORT", quiet=True, sub=ksub[2])
-                for ksub in [k for k in list(algo_stops.keys()) if k[0] == sym and k[1] == "SHORT"]:
-                    await cancel_stop_algo(sym, "SHORT", quiet=True, sub=ksub[2])
-                if CMP_MODE:
-                    tid = f"T{cmp_seq_incr():04d}"
-                    p = {"tid": tid, "anc": anc_trig, "depth": depth, "t0": now, "ext": px}
-                    log.info(f"[CMP触发✓空][WS即时] {sym} tid={tid} src={src} 锚{anc_trig:.8f}(窗口100ms) +{depth:.0%} | "
-                             f"M线程直发(0阻塞) | WS回调0延迟触发")
-                    cmp_events[tid] = {"sym": sym, "pos_side": "SHORT", "t": now, "anchor": anc_trig,
-                                       "thr": thr_up, "mkt_px": px, "src": src,
-                                       "M_oid": None, "L_oid": None}
-                    asyncio.create_task(asyncio.to_thread(sync_fire_cmp_m, sym, "SHORT", p, px))
+                    # ── 乌龙指真伪分类（0延迟，用已有内存数据）──
+                    cur_bid = mids.get(sym, {}).get("bid", 0)
+                    cur_ask = mids.get(sym, {}).get("ask", 0)
+                    cur_mid = (cur_bid + cur_ask) / 2 if cur_bid and cur_ask else px
+                    tp_data = trade_prices.get(sym, {})
+                    last_trade_px = tp_data.get("price", 0)
+                    last_trade_ts = tp_data.get("ts", 0)
+                    now_ms = int(time.time() * 1000)
+                    bid_dev = (anc - cur_bid) / anc if anc and cur_bid else 0
+                    ask_dev = (anc - cur_ask) / anc if anc and cur_ask else 0
+                    last_trade_age = now_ms - last_trade_ts if last_trade_ts else 999999
+                    spread = (cur_ask - cur_bid) / cur_mid if cur_mid else 0
+                    if ask_dev > 0.03 and last_trade_age < 3000 and last_trade_px > 0 and last_trade_px < anc * 0.96:
+                        signal_type = "A"  # 真乌龙指
+                    elif ask_dev > 0.03 and last_trade_age > 5000:
+                        signal_type = "B"  # 低价挂单
+                    elif bid_dev > 0.03 and ask_dev < 0.02:
+                        signal_type = "C"  # 撤买单
+                    else:
+                        signal_type = "A"  # 默认真乌龙指
+                    log.info(f"[CMP分类] {sym} tid={tid} type={signal_type} "
+                             f"bid_dev={bid_dev:.1%} ask_dev={ask_dev:.1%} "
+                             f"trade_age={last_trade_age}ms spread={spread:.2%}")
+                    p["signal_type"] = signal_type
+                    # entry_cooldown[(sym, "LONG", src)] = now + 60  # 暂时关闭cooldown测试
+                    await _fire_cmp_m(sym, "LONG", p, px)
+        # 现货纸面模式：不做SHORT（现货不能做空）
     except Exception as e:
         log.warning(f"[WS即时] {sym} src={src} 检测异常: {e}")
 
@@ -718,54 +606,35 @@ async def ws_book_loop(symbols):
     """单连接订阅一批 symbol 的 bookTicker（实时买卖一）。357 币拆成多连接，每连接≤WS_CHUNK 个，
     避免单连接消息量过大导致 keepalive ping 超时断连（实测 50 币/连接≈314条/s 稳定不超时）。"""
     streams = "/".join(f"{s.lower()}@bookTicker" for s in symbols)
-    uri = f"{FSTREAM_WS}/stream?streams={quote(streams, safe='')}"
+    uri = f"{SAPI_WS}/stream?streams={quote(streams, safe='')}"
     while not shutdown.is_set():
         try:
             async with websockets.connect(uri, proxy=PROXY or None, ping_interval=20,
                                           ping_timeout=30, open_timeout=15,
-                                          ssl=_ws_ssl,
-                                          additional_headers={"Host": _FSTREAM_HOST}) as ws:
+                                          ssl=_ws_ssl) as ws:
                 log.info(f"[WS] bookTicker 已连接 ({len(symbols)} 币/单连接)")
                 async for msg in ws:
                     try:
                         d = json.loads(msg).get("data") or json.loads(msg)
                     except Exception:
                         continue
-                    if not isinstance(d, dict) or d.get("e") != "bookTicker":
+                    if not isinstance(d, dict) or "s" not in d or "b" not in d:
                         continue
-                    # P3: WS数据校验 — bid/ask<=0 或 ask<bid 时丢弃
-                    _bid_bt, _ask_bt = float(d["b"]), float(d["a"])
+                    # P3: WS数据校验，防ZeroDivisionError
+                    _bid_bt = float(d["b"])
+                    _ask_bt = float(d["a"])
                     if _bid_bt <= 0 or _ask_bt <= 0 or _ask_bt < _bid_bt:
                         continue
                     mids[d["s"]] = {"bid": _bid_bt, "ask": _ask_bt,
-                                    "ts": int(d.get("T") or time.time() * 1000)}
+                                    "ts": int(time.time() * 1000)}  # 现货bookTicker无T字段，用本地时间
                     _record_spike(d["s"], (_bid_bt + _ask_bt) / 2)
-                    # 【平仓快路径】该币有持仓 → 用刚收到的盘口中间价立即WS回调判定, 0轮询延迟。
-                    # create_task 不阻塞行情流; exit_in_flight 占坑锁防与轮询双平。
+                    # P1: WS回调减负——只更新mids(O(1))，仅在偏离锁价>3%时才create_task
                     _sym_bt, _mid_bt = d["s"], (_bid_bt + _ask_bt) / 2
-                    anchors[_sym_bt] = _mid_bt  # 实时更新，用于平仓判断
-                    # 【诊断日志】BT推送记录（只在anc存在且偏离>2%时打，避免日志爆炸）
                     if _sym_bt in RUN_SYMBOLS:
-                        _anc_diag = anchors.get(_sym_bt)
-                        if _anc_diag and _anc_diag > 0 and abs(_mid_bt/_anc_diag-1) > 0.02:
-                            log.info(f"[BT推送] {_sym_bt} bid={_bid_bt} ask={_ask_bt} mid={_mid_bt:.8g} anc={_anc_diag:.8g} 偏离={abs(_mid_bt/_anc_diag-1)*100:.2f}%")
-                    # BT不再写入price_hist：AT独立维护，防止BT mid价污染锚价
-                    # BT平仓已移除：AT用真实成交价平仓，更准确无盘口噪声
-                    # 【BT触发判断】用100ms前的价格作锚价，防止锚价跟价格同步导致触发窗口消失
-                    if _sym_bt in RUN_SYMBOLS:
-                        _hist_trig = price_hist.get(_sym_bt)
-                        if _hist_trig and len(_hist_trig) >= 2:
-                            # 取100ms前的价格：找最靠近(_ts_bt - 100ms)的历史价格
-                            _anc_bt = None
-                            for _hts, _hpx in _hist_trig:
-                                if _ts_bt - _hts >= 80:  # >=80ms前的价格
-                                    _anc_bt = _hpx
-                            if _anc_bt and _anc_bt > 0:
-                                _dev_bt = abs(_mid_bt / _anc_bt - 1)
-                                if _dev_bt > DEPTH * 0.3:  # 偏离>30%阈值记录诊断
-                                    _dir_bt = "↓" if _mid_bt < _anc_bt else "↑"
-                                    log.info(f"[BT逼近] {_sym_bt} anc={_anc_bt:.8g} mid={_mid_bt:.8g} 偏离={_dev_bt*100:.2f}% {_dir_bt} hist={len(_hist_trig)}条")
-                                # BT触发入场已移除：AT路径更快、用真实成交价，无盘口噪声
+                        _anc_bt = anchors.get(_sym_bt)
+                        if _anc_bt and abs(_mid_bt - _anc_bt) / _anc_bt > 0.03:
+                            asyncio.create_task(_ws_instant_check(_sym_bt, _mid_bt, "BT"))
+                    
         except Exception as e:
             log.warning(f"[WS] bookTicker 断线({len(symbols)}币): {e} → 3s 后重连")
             await asyncio.sleep(3)
@@ -778,13 +647,12 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
     与 ws_book_loop 并行运行，提供逐笔成交价数据源。
     消息量比 bookTicker 大（热门币每秒几十条），但只更新字典不做计算，开销极小。"""
     streams = "/".join(f"{s.lower()}@aggTrade" for s in symbols)
-    uri = f"{FSTREAM_WS}/stream?streams={quote(streams, safe='')}"
+    uri = f"{SAPI_WS}/stream?streams={quote(streams, safe='')}"
     while not shutdown.is_set():
         try:
             async with websockets.connect(uri, proxy=PROXY or None, ping_interval=20,
                                           ping_timeout=30, open_timeout=15,
-                                          ssl=_ws_ssl,
-                                          additional_headers={"Host": _FSTREAM_HOST}) as ws:
+                                          ssl=_ws_ssl) as ws:
                 log.info(f"[WS] aggTrade#{chunk_idx} 已连接 ({len(symbols)} 币/单连接)")
                 async for msg in ws:
                     try:
@@ -793,97 +661,18 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
                         continue
                     if not isinstance(d, dict) or d.get("e") != "aggTrade":
                         continue
-                    # P3: aggTrade数据校验 — price<=0 时丢弃
-                    _px_at = float(d["p"])
-                    if _px_at <= 0:
+                    # P3: WS数据校验，防ZeroDivisionError
+                    _px_at_raw = float(d["p"])
+                    if _px_at_raw <= 0:
                         continue
-                    trade_prices[d["s"]] = {"price": _px_at,
+                    trade_prices[d["s"]] = {"price": _px_at_raw,
                                             "ts": int(d.get("T") or time.time() * 1000)}
-                    # 【平仓快路径】aggTrade同款: 有持仓就立即WS回调判定(逐笔成交价, 比盘口更精细)
-                    _sym_at = d["s"]
-                    _has_pos_at = any(k[0] == _sym_at for k in positions_open)
-                    if _has_pos_at:
-                        asyncio.create_task(_ws_exit_check(_sym_at, _px_at))
-                    # 【AT写入price_hist】每条aggTrade都写，不依赖RUN_SYMBOLS，保证锚价可用
-                    _ts_at_ms = int(d.get("T") or time.time()*1000)
-                    _hist_at_w = price_hist.setdefault(_sym_at, deque())
-                    if not _hist_at_w or _hist_at_w[-1][1] != _px_at:
-                        _hist_at_w.append((_ts_at_ms, _px_at))
-                    while _hist_at_w and _ts_at_ms - _hist_at_w[0][0] > PRICE_HIST_MS:
-                        _hist_at_w.popleft()
-                    # 【诊断日志】验证_sym_at in RUN_SYMBOLS判断（只在偏离>3%时打）
-                    _in_run = _sym_at in RUN_SYMBOLS
-                    _cmp_ok = CMP_MODE or GROUP_A or GROUP_B
-                    _hist_at_diag = price_hist.get(_sym_at)
-                    _anc_at_diag = None
-                    if _hist_at_diag:
-                        for _hts, _hpx in _hist_at_diag:
-                            if _ts_at_ms - _hts >= 80:
-                                _anc_at_diag = _hpx
-                    if _anc_at_diag:
-                        _dev_at_diag = abs(_px_at / _anc_at_diag - 1)
-                        if _dev_at_diag > DEPTH * 0.5:  # 偏离>3%时打诊断
-                            if not _in_run:
-                                log.warning(f"[AT诊断] {_sym_at} 偏离{_dev_at_diag*100:.1f}%但不在RUN_SYMBOLS！RUN_SYMBOLS长度={len(RUN_SYMBOLS)}")
-                            else:
-                                log.info(f"[AT诊断] {_sym_at} 偏离{_dev_at_diag*100:.1f}% 在RUN_SYMBOLS={_in_run} CMP={_cmp_ok}")
-                        log.warning(f"[AT诊断] {_sym_at} 不在RUN_SYMBOLS里！RUN_SYMBOLS长度={len(RUN_SYMBOLS)}")
-                    # 【aggTrade内联入场·直接下单】
-                    if _in_run and _cmp_ok:
-                        # 取100ms前的价格作触发锚价
-                        _hist_at = price_hist.get(_sym_at)
-                        _anc_at = None
-                        if _hist_at:
-                            for _hts, _hpx in _hist_at:
-                                if _ts_at_ms - _hts >= 80:
-                                    _anc_at = _hpx
-                        if not _anc_at:
-                            _anc_at = anchors.get(_sym_at)  # 历史不够则回退实时锚价
-                        if _anc_at and _anc_at > 0 and time.time() >= halt_until \
-                                and _sym_at not in STARTUP_HELD:
-                            _dev_at = abs(_px_at / _anc_at - 1)
-                            if _dev_at > DEPTH * 0.5:  # 偏离>3%记录诊断
-                                _dir_at = "↓" if _px_at < _anc_at else "↑"
-                                _m_str = "主动卖" if bool(d.get("m")) else "主动买"
-                                log.info(f"[AT逼近] {_sym_at} anc={_anc_at:.8g} px={_px_at:.8g} 偏离={_dev_at*100:.2f}% {_dir_at} {_m_str}")
-                            if _dev_at > DEPTH:  # 超过6%阈值才处理
-                                _now_at = time.time()
-                                _op_at = {(k[0], k[1]) for k in positions_open.keys()}
-                                _m_at = bool(d.get("m"))  # True=主动卖(价跌接多) False=主动买(价涨接空)
-                                # 多单：跌破100ms前锚价*(1-DEPTH)
-                                if _px_at < _anc_at * (1 - DEPTH):
-                                    if not _m_at:  # 主动买推低不合理，过滤
-                                        pass
-                                    elif (_sym_at, "LONG") not in _op_at \
-                                            and not _entry_lock.get((_sym_at, "LONG"), False) \
-                                            and entry_cooldown.get((_sym_at, "LONG", "AT"), 0) <= _now_at:
-                                        _entry_lock[(_sym_at, "LONG")] = True
-                                        _tid_at = f"T{cmp_seq_incr():04d}"
-                                        _p_at = {"tid": _tid_at, "anc": _anc_at, "depth": DEPTH,
-                                                 "t0": _now_at, "ext": _px_at}
-                                        cmp_events[_tid_at] = {"sym": _sym_at, "pos_side": "LONG",
-                                            "t": _now_at, "anchor": _anc_at, "thr": _anc_at*(1-DEPTH),
-                                            "mkt_px": _px_at, "src": "AT", "M_oid": None, "L_oid": None}
-                                        log.info(f"[CMP触发✓][AT内联] {_sym_at} tid={_tid_at} src=AT "
-                                                 f"锚{_anc_at:.8f}(窗口100ms) -{DEPTH:.0%} | aggTrade={_px_at:.8f} m=卖 → 线程直发")
-                                        asyncio.create_task(asyncio.to_thread(sync_fire_cmp_m, _sym_at, "LONG", _p_at, _px_at))
-                                # 空单：涨破100ms前锚价*(1+DEPTH)
-                                elif _px_at > _anc_at * (1 + DEPTH):
-                                    if _m_at:  # 主动卖推高不合理，过滤
-                                        pass
-                                    elif (_sym_at, "SHORT") not in _op_at \
-                                            and not _entry_lock.get((_sym_at, "SHORT"), False) \
-                                            and entry_cooldown.get((_sym_at, "SHORT", "AT"), 0) <= _now_at:
-                                        _entry_lock[(_sym_at, "SHORT")] = True
-                                        _tid_at = f"T{cmp_seq_incr():04d}"
-                                        _p_at = {"tid": _tid_at, "anc": _anc_at, "depth": DEPTH,
-                                                 "t0": _now_at, "ext": _px_at}
-                                        cmp_events[_tid_at] = {"sym": _sym_at, "pos_side": "SHORT",
-                                            "t": _now_at, "anchor": _anc_at, "thr": _anc_at*(1+DEPTH),
-                                            "mkt_px": _px_at, "src": "AT", "M_oid": None, "L_oid": None}
-                                        log.info(f"[CMP触发✓空][AT内联] {_sym_at} tid={_tid_at} src=AT "
-                                                 f"锚{_anc_at:.8f}(窗口100ms) +{DEPTH:.0%} | aggTrade={_px_at:.8f} m=买 → 线程直发")
-                                        asyncio.create_task(asyncio.to_thread(sync_fire_cmp_m, _sym_at, "SHORT", _p_at, _px_at))
+                    # P1: WS回调减负——只更新trade_prices(O(1))，仅在偏离锁价>3%时才create_task
+                    _sym_at, _px_at = d["s"], _px_at_raw
+                    if _sym_at in RUN_SYMBOLS:
+                        _anc_at = anchors.get(_sym_at)
+                        if _anc_at and abs(_px_at - _anc_at) / _anc_at > 0.03:
+                            asyncio.create_task(_ws_instant_check(_sym_at, _px_at, "AT"))
         except Exception as e:
             log.warning(f"[WS] aggTrade#{chunk_idx} 断线({len(symbols)}币): {e} → 3s 后重连")
             await asyncio.sleep(3)
@@ -895,29 +684,32 @@ async def keep_listen_key():
     while not shutdown.is_set():
         try:
             if LISTEN_KEY[0] is None:
-                r = client_sync().post(f"{PAPI}/fapi/v1/listenKey", timeout=15)
+                r = client_sync().post(f"{PAPI}/api/v3/listenKey", timeout=15)
                 LISTEN_KEY[0] = r.json().get("listenKey")
                 if LISTEN_KEY[0]:
                     log.info("[WS] listenKey 已获取")
             else:
-                client_sync().put(f"{PAPI}/fapi/v1/listenKey", timeout=15)
+                client_sync().put(f"{PAPI}/api/v3/listenKey", timeout=15)
         except Exception as e:
             log.warning(f"[listenKey] 保活失败: {e}")
             LISTEN_KEY[0] = None
         await asyncio.sleep(25 * 60)
 
 async def ws_user_loop():
+    """纸面模式：不需要用户数据流。"""
+    pass
+
+async def _ws_user_loop_disabled():
     last_lat_warn = 0.0   # 延迟告警节流(30s最多1条)
     while not shutdown.is_set():
         if LISTEN_KEY[0] is None:
             await asyncio.sleep(2)
             continue
         try:
-            uri = f"{FSTREAM_WS}/ws/{LISTEN_KEY[0]}"
+            uri = f"{SAPI_WS}/ws/{LISTEN_KEY[0]}"
             async with websockets.connect(uri, proxy=PROXY or None, ping_interval=20,
                                           ping_timeout=30, open_timeout=15,
-                                          ssl=_ws_ssl,
-                                          additional_headers={"Host": _FSTREAM_HOST}) as ws:
+                                          ssl=_ws_ssl) as ws:
                 log.info("[WS] 用户数据流已连接")
                 async for msg in ws:
                     d = json.loads(msg)
@@ -928,7 +720,7 @@ async def ws_user_loop():
                         lat = (time.time() * 1000 + OFF) - int(o.get("T") or d.get("E") or 0)
                         if lat > 10000:
                             log.warning(f"[WS延迟⚠] 用户流回报延迟 {lat/1000:.1f}s >10s → 强制重连")
-                            wecom_notify.send_async(f"⚠️埋伏合约 用户流延迟{lat/1000:.1f}s 已强制重连")
+                            wecom_notify.send_async(f"⚠️埋伏现货 用户流延迟{lat/1000:.1f}s 已强制重连")
                             break   # 跳出 async for → with 退出连接 → 重连
                         elif lat > 2000 and time.time() - last_lat_warn > 30:
                             last_lat_warn = time.time()
@@ -938,36 +730,6 @@ async def ws_user_loop():
                             if oid in orders:
                                 spawn(on_fill(oid, float(o.get("ap") or o["p"]),
                                               float(o["z"]), o["s"]))
-                            elif oid in tp_limits.values():
-                                # 【修复·TP限价成交】在册限价止盈单成交 → 交易所已把仓平掉,
-                                # 脚本必须立即清登记/撤止损/释放锁 + 发平仓通知 + 记pnl。
-                                # 9/23实盘实锤: 缺这条路径 → 路线A/B对着已平的仓发市价单 →
-                                # -2022无限重试370+次烧穿REST配额触发IP封禁。
-                                _tpk = next((k for k, v in tp_limits.items() if v == oid), None)
-                                if _tpk:
-                                    _tsym, _tps, _tsub = _tpk
-                                    tp_limits.pop(_tpk, None)
-                                    _tp = positions_open.pop(_tpk, None)
-                                    _entry_lock.pop((_tsym, _tps), None)
-                                    spawn(cancel_stop_algo(_tsym, _tps, sub=_tsub, quiet=True))
-                                    if _tp:
-                                        _texit = float(o.get("ap") or o.get("p") or 0)
-                                        _tentry = float(_tp.get("entry") or 0)
-                                        _tqty = float(_tp.get("qty") or 0)
-                                        _tgross = (_texit - _tentry) * _tqty if _tps == "LONG" else (_tentry - _texit) * _tqty
-                                        _tfee = (_tentry * FEE_MAKER + _texit * FEE_TAKER) * _tqty
-                                        _tpnl = _tgross - _tfee
-                                        stats["pnl"] += _tpnl
-                                        stats["routeA"] += 1
-                                        log.info(f"[TP限价成交✓] {_tsym} {_tps} 交易所侧已平 @{_texit:.8g} "
-                                                 f"pnl≈{_tpnl:+.4f}U | 累计{stats['fills']}次 {stats['pnl']:+.4f}U")
-                                        if wecom_notify:
-                                            wecom_notify.notify_close(_tsym, _tps, _tentry, _texit, _tpnl,
-                                                                      route="A", tag="TP限价",
-                                                                      total_pnl=stats["pnl"], fills=stats["fills"])
-                                    else:
-                                        # 登记已被兑底复核清掉 → 只补一条日志, 不重复通知
-                                        log.info(f"[TP限价成交✓] {_tsym} {_tps} 交易所侧已平(登记已被兑底清理)")
                             elif MODE == "resident" and o["s"] in RUN_SYMBOLS:
                                 # 常驻条件单成交: 条件单触发生成的市价单不在 orders 表,
                                 # 用原始订单类型 ot=TAKE_PROFIT_MARKET 识别(react进程的
@@ -982,59 +744,7 @@ async def ws_user_loop():
             LISTEN_KEY[0] = None
             await asyncio.sleep(3)
 
-# ── 成交处理 → A/B 路线退出 ──────────────────────────────
-async def _ws_exit_check(sym, px):
-    """【WS平仓快路径】行情WS( bookTicker/aggTrade )每收到一笔价, 该币有仓就立即判定:
-    - A窗口内( t_fill + T_A 之前 ): 价回到路线A目标(锚价±REB_PCT冻结在仓位登记) → 市价平(route=A)
-    - B阶段: 触及亏损上限B_LOSS(3%,冻结) 或 盈利即平(回成交价) → 市价平(route=B)
-    0轮询延迟(原50/100ms轮询仍保留为WS断流兑底)。全部判定参数从仓位登记读取, 不重算。
-    exit_in_flight 占坑锁: 同仓同时只允许一张市价平仓单在飞, 占不到坑直接返回(轮询在管)。"""
-    for (s, ps, sub), p in [kv for kv in positions_open.items() if kv[0][0] == sym]:
-        # 占坑失败 = 该仓已有平仓单在飞(轮询路径或另一路WS), 直接让位
-        if (sym, ps) in exit_in_flight:
-            continue
-        is_long = ps == "LONG"
-        target = p.get("target") or 0.0
-        loss_cap = p.get("loss_cap") or 0.0
-        t_fill = p.get("t_fill") or time.time()
-        entry_px = float(p.get("entry") or 0.0)
-        O = float(p.get("O") or 0.0)
-        hit = None
-        if time.time() - t_fill < T_A:
-            # A窗口: 回到目标就平
-            if (is_long and px >= target) or (not is_long and px <= target):
-                hit = "A"
-        else:
-            # B阶段: 盈利1%即平 优先于止损判定
-            if B_BREAKEVEN:
-                target_b = entry_px * (1 + B_PROFIT_PCT) if is_long else entry_px * (1 - B_PROFIT_PCT)
-                if (is_long and px >= target_b) or (not is_long and px <= target_b):
-                    hit = f"B盈利{B_PROFIT_PCT:.0%}"
-                elif loss_cap > 0 and ((is_long and px <= loss_cap) or (not is_long and px >= loss_cap)):
-                    hit = "B亏损上限"
-            elif loss_cap > 0 and ((is_long and px <= loss_cap) or (not is_long and px >= loss_cap)):
-                hit = "B亏损上限"
-        if not hit:
-            continue
-        exit_in_flight.add((sym, ps))
-        try:
-            # 占坑后复确认仓位还在(TP限价成交/兑底复核可能刚清掉)
-            if (sym, ps, sub) not in positions_open:
-                continue
-            log.info(f"[WS快平] {sym} {ps} @{px:.8g} 命中{hit} → 市价平仓(0延迟)")
-            ok = await market_close(sym, ps, float(p["qty"]), entry_px, O,
-                                    hit, tag=f"CMP-WS" if p.get("cmp") else "WS快")
-            if ok:
-                positions_open.pop((sym, ps, sub), None)
-                _entry_lock.pop((sym, ps), None)
-                await cancel_stop_algo(sym, ps, sub=sub)
-                await cancel_tp_limit(sym, ps, sub=sub)
-        except Exception as e:
-            log.warning(f"[WS快平✗] {sym} {ps} {type(e).__name__}: {e} → 轮询兑底仍在")
-        finally:
-            exit_in_flight.discard((sym, ps))
-
-# ── 聚合仓位: 同币同方向多腿的合计数量与加权均价 ───────────────
+# ── 成交处理 → A/B 路线退出 ──────────────────────────────────
 def _agg_position(sym, pos_side):
     """【-4130 修复配套】同币同方向所有在册腿的合计数量与加权均价。
     例：M腿 0.016783×593 + 风暴腿 0.015677×627 → 均价 0.0162146（而非任一单腿价）。
@@ -1053,22 +763,15 @@ def _agg_position(sym, pos_side):
     return tot_q, tot_v / tot_q
 
 def place_stop_algo_sync(sym, pos_side, entry_px, stop_pct=None):
-    """成交后立刻挂交易所端止损条件单（同步版，供 to_thread 调用）。
-    stop_pct=None 用全局 STOP_LOSS；传 0.0 = 保本单(trigger=成交价)。"""
-    sl = STOP_LOSS if stop_pct is None else stop_pct
-    trig = entry_px * (1 + sl) if pos_side == "SHORT" else entry_px * (1 - sl)
-    params = {
-        "symbol": sym,
-        "side": "BUY" if pos_side == "SHORT" else "SELL",   # 平仓方向
-        "positionSide": pos_side,
-        "type": "STOP_MARKET",
-        "triggerPrice": f"{rnd_price(sym, trig):.8f}".rstrip("0").rstrip("."),
-        "closePosition": "true",
-        "workingType": "CONTRACT_PRICE",
-    }
-    return sync_signed_request("POST", "/fapi/v1/order", params, tries=3)
+    """纸面模式：无交易所端止损。"""
+    return 200, {"msg": "paper mode - no stop loss"}
 
 async def place_stop_algo(sym, pos_side, entry_px, sub="", stop_pct=None):
+    """纸面模式：无交易所端止损。"""
+    pass
+
+async def _place_stop_algo_disabled(sym, pos_side, entry_px, sub="", stop_pct=None):
+    """[已禁用]原止损条件单。"""
     """挂止损条件单并登记。失败只告警不抛——路线B(5s硬平)仍是兜底，
     且 -4400 可能拒单（风控优先级高于保护，接受）。sub=对比模式子仓键(trigger_id:腿)。
     stop_pct=None 用全局 STOP_LOSS；传 0.0 = 保本单(trigger=成交价)。"""
@@ -1085,7 +788,7 @@ async def place_stop_algo(sym, pos_side, entry_px, sub="", stop_pct=None):
             if not aid:
                 continue
             try:
-                c, r = await signed_request( "DELETE", "/fapi/v1/order",
+                c, r = await signed_request( "DELETE", "/api/v3/order",
                                                {"orderId": aid, "symbol": sym}, tries=2)
                 log.info(f"[止损合并] {sym} {pos_side} 撤旧全平单 algoId={aid}: "
                          f"{'OK' if c in (200, 400) else str(r)[:50]}")
@@ -1132,7 +835,7 @@ async def cancel_stop_algo(sym, pos_side, quiet=False, sub=""):
                  f"保留全平止损 algoId={aid} 继续保护")
         return
     try:
-        c, r = await signed_request( "DELETE", "/fapi/v1/order",
+        c, r = await signed_request( "DELETE", "/api/v3/order",
                                        {"orderId": aid, "symbol": sym}, tries=3)
         ok = c == 200 or c == 400   # -2011(已触发/已失效)也算清
         if not quiet or not ok:
@@ -1156,12 +859,11 @@ async def place_tp_limit(sym, pos_side, entry_px, sub="", tp_pct=None):
         params = {
             "symbol": sym,
             "side": "SELL" if pos_side == "LONG" else "BUY",   # 平仓方向
-            "positionSide": pos_side,
             "type": "LIMIT", "timeInForce": "GTC",
             "price": f"{rnd_price(sym, tp_px):.8f}".rstrip("0").rstrip("."),
             "quantity": f"{p['qty']:.8f}".rstrip("0").rstrip("."),
         }
-        c, r = await signed_request( "POST", "/fapi/v1/order", params, tries=3)
+        c, r = await signed_request( "POST", "/api/v3/order", params, tries=3)
         if c == 200:
             tp_limits[(sym, pos_side, sub)] = int(r["orderId"])
             log.info(f"[止盈✓] {sym} {pos_side} LIMIT 挂出 @{r.get('price', '?')} "
@@ -1177,35 +879,12 @@ async def cancel_tp_limit(sym, pos_side, quiet=False, sub=""):
     if not oid:
         return
     try:
-        c, r = await signed_request(
-            "DELETE", "/fapi/v1/order",
-            {"symbol": sym, "orderId": oid}, tries=3)
+        c, r = await signed_request( "DELETE", "/api/v3/order",
+                                       {"symbol": sym, "orderId": oid}, tries=3)
         if not quiet or c != 200:
             log.info(f"[止盈撤] {sym} {pos_side} oid={oid}: {'OK' if c == 200 else str(r)[:60]}")
     except Exception as e:
         log.warning(f"[止盈撤✗] {sym} {pos_side} oid={oid} {type(e).__name__}: {e}")
-
-async def place_limit_tp(sym, pos_side, qty, tp_px, sub=""):
-    """限价止盈单（异步）：在route A目标价挂BUY/SELL LIMIT平仓。
-    与市价路线A并行，先成交者胜出。用固定qty避免子账号-4136。
-    SHORT→BUY LIMIT @tp_px；LONG→SELL LIMIT @tp_px。"""
-    side = "BUY" if pos_side == "SHORT" else "SELL"
-    params = {
-        "symbol": sym, "side": side, "positionSide": pos_side,
-        "type": "LIMIT", "timeInForce": "GTC",
-        "price": f"{rnd_price(sym, tp_px):.8f}".rstrip("0").rstrip("."),
-        "quantity": f"{qty:.8f}".rstrip("0").rstrip("."),
-    }
-    try:
-        c, r = await signed_request("POST", "/fapi/v1/order", params, tries=3)
-        if c == 200:
-            tp_limits[(sym, pos_side, sub)] = int(r["orderId"])
-            log.info(f"[限价止盈✓] {sym} {pos_side} LIMIT @{r.get('price','?')} "
-                     f"(oid={r['orderId']}) → 异步等待成交, 与市价路线A并行")
-        else:
-            log.warning(f"[限价止盈✗] {sym} {pos_side} 挂单被拒: {str(r)[:70]} → 仅靠市价路线A")
-    except Exception as e:
-        log.warning(f"[限价止盈✗] {sym} {pos_side} 挂单异常 {type(e).__name__}: {e}")
 
 FILL_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cmp_fills.csv")
 
@@ -1232,22 +911,16 @@ async def on_fill(order_id, entry_px, qty, sym):
     o = orders.pop(order_id, None)
     if not o:
         return
-    pos_side = "LONG" if o["side"] == "BUY" else "SHORT"
+    pos_side = "LONG"  # 现货纸面模式：只有LONG
     O = o["O"]
     sub = o.get("sub") or ""          # 对比模式子仓键(同触发 M/L 不同，避免同币两仓互相覆盖)
     cmp_tag = o.get("cmp")            # "M"/"L" 仅对比模式有
-    # 撤对面单（自己 track 的）
-    # 【修复】原按 round 匹配：撤旧单失败而残留的旧单（round 不同）在本币成交时撤不掉，
-    # 会一直挂在账户里 → 孤儿单累积（这正是说明书 §4.1 "200+ 单"乱象的另一条路径，
-    # 单实例锁只防住了双实例，没防住这条）。同一币在本进程下的单都是我们下的，全撤才安全。
+    # 【纸面模式】没有真实挂单需要撤，只做日志记录
     if not (CMP_MODE or MODE == "resident"):
         for k, v in list(orders.items()):
-            if v["symbol"] == sym:
-                orders.pop(k)
-                c, r = await signed_request( "DELETE", "/fapi/v1/order",
-                                               {"symbol": sym, "orderId": k})
-                log.info(f"[成交] {sym} {pos_side} @{entry_px} x{qty} | 撤同币单{k}: "
-                         f"{'OK' if c == 200 else str(r)[:60]}")
+            if v["symbol"] == sym and k != order_id:
+                orders.pop(k, None)
+                log.info(f"[成交] {sym} {pos_side} @{entry_px} x{qty} | 纸面撤同币单{k} (无真实撤单)")
     else:
         log.info(f"[成交] {sym} {pos_side} @{entry_px} x{qty} cmp={cmp_tag} tid={sub} "
                  f"(对比模式: 保留同币另一腿, 各自独立管理)")
@@ -1266,20 +939,12 @@ async def on_fill(order_id, entry_px, qty, sym):
                                  cmp_tag=cmp_tag or "", tid=sub or "", anchor=O or 0.0)
     # 【修复】原 key=sym：同一币 LONG/SHORT 同时成交（插针来回扫）时后写覆盖前写，
     # 前一个仓位就此丢失追踪 → 裸仓无人管。改为 (symbol, pos_side) 双键各自独立追踪。
-    # 【WS快路径配套】入场时就把退出参数冻结进仓位登记(t_fill/目标价/止损线),
-    # WS回调快路径只读不重算 → 单一事实源, 防止快路径与路线A/B口径漂移。
-    _tfill = time.time()
-    # 路线A目标：成交价×(1+TP_PCT) 盈利3%
-    _exit_target = entry_px * (1 + TP_PCT) if pos_side == "LONG" else entry_px * (1 - TP_PCT)
-    # 止损线：成交价×(1-B_LOSS) 亏损3%
-    _exit_loss_cap = entry_px * (1 - B_LOSS) if pos_side == "LONG" else entry_px * (1 + B_LOSS)
     positions_open[(sym, pos_side, sub)] = {"pos_side": pos_side, "qty": qty, "entry": entry_px,
-                                            "O": O, "order_id": order_id, "cmp": cmp_tag,
-                                            "t_fill": _tfill, "target": _exit_target,
-                                            "loss_cap": _exit_loss_cap}
+                                            "O": O, "order_id": order_id, "cmp": cmp_tag}
     # 【止损已禁用】子账号所有条件单类型都被拒(code -4120)，挂SL白白浪费~0.4s。
     # routeB本机轮询兜底即可。CEO 20260916 定。
-    # spawn(place_stop_algo(sym, pos_side, entry_px, sub, stop_pct=B_LOSS))   # 8% 止损兜底(对齐回测B亏损上限)
+    # await place_stop_algo(sym, pos_side, entry_px, sub, stop_pct=B_LOSS)   # 8% 止损兜底(对齐回测B亏损上限)
+    last_ref.pop(sym, None)   # 该币单已成交消耗→清锚价，平完仓回来必重挂(防误判"未动"漏补单)
     # 【路线A 目标】回弹到目标价就平仓。
     # 默认：相对成交价 (entry×(1±TP_PCT))。
     # --reb-anchor 开启：相对锚价 (O×(1∓REB_PCT))，与回测口径一致（CEO 20260907 新20币实验）。
@@ -1288,33 +953,11 @@ async def on_fill(order_id, entry_px, qty, sym):
         target = O * (1 - REB_PCT) if pos_side == "LONG" else O * (1 + REB_PCT)
     else:
         target = entry_px * (1 + tpp_a) if pos_side == "LONG" else entry_px * (1 - tpp_a)
-    # 限价止盈@route A目标价(已移除,日志显示全部失败,仅靠WS快路径平仓)
-    last_ref.pop(sym, None)   # 该币单已成交消耗→清锚价，平完仓回来必重挂(防误判"未动"漏补单)
-    # 入场即检查：如果入场价已满足路线A条件，直接市价平仓(限价止盈已在路上)
-    if (pos_side == "SHORT" and entry_px <= target) or \
-       (pos_side == "LONG"  and entry_px >= target):
-        log.info(f"[路线A立即] {sym} {pos_side} entry={entry_px:.8g} 已在目标{target:.8g}内 → 直接市价平仓")
-        exit_in_flight.add((sym, pos_side))   # 占坑锁: 防WS快路径同时发平仓单
-        try:
-            ok = await market_close(sym, pos_side, qty, entry_px, O, "A立即",
-                                    tag=f"CMP-{cmp_tag}" if cmp_tag else "")
-        finally:
-            exit_in_flight.discard((sym, pos_side))
-        if ok:
-            positions_open.pop((sym, pos_side, sub), None)
-            _entry_lock.pop((sym, pos_side), None)
-            await cancel_stop_algo(sym, pos_side, sub=sub)
-            await cancel_tp_limit(sym, pos_side, sub=sub)
-        else:
-            log.critical(f"[告警] {sym} {pos_side} 路线A立即平仓失败, 保留仓位+TP/SL 待收尾")
-        return
     t0 = time.time()
     route = None
     # 路线A期间同步跟踪best，传入routeB让反转阈值有更合理的基准(CEO 20260916 定)
     best = entry_px
     while time.time() - t0 < T_A and not shutdown.is_set():
-        if (sym, pos_side, sub) not in positions_open:
-            break        # 限价止盈已成交,仓位已空,无需继续
         m = mid(sym) or entry_px
         if pos_side == "LONG":
             if m > best: best = m
@@ -1326,18 +969,11 @@ async def on_fill(order_id, entry_px, qty, sym):
             break
         await asyncio.sleep(0.05)
     if route == "A":
-        if (sym, pos_side) in exit_in_flight:
-            return   # WS快路径已接管平仓, 让位避免双平
-        exit_in_flight.add((sym, pos_side))
-        try:
-            ok = await market_close(sym, pos_side, qty, entry_px, O, "A", tag=f"CMP-{cmp_tag}" if cmp_tag else "")
-        finally:
-            exit_in_flight.discard((sym, pos_side))
+        ok = await market_close(sym, pos_side, qty, entry_px, O, "A", tag=f"CMP-{cmp_tag}" if cmp_tag else "")
         if ok:
             positions_open.pop((sym, pos_side, sub), None)
             _entry_lock.pop((sym, pos_side), None)
-            await cancel_stop_algo(sym, pos_side, sub=sub)
-            await cancel_tp_limit(sym, pos_side, sub=sub)
+            # 纸面模式：无TP/SL条件单需要撤
         else:
             # 仓位还在→保留 TP/SL 条件单：万一 bot 崩了/断网，交易所端仍保护仓位
             log.critical(f"[告警] {sym} {pos_side} 路线A未平掉，保留仓位+TP/SL 待收尾/重试")
@@ -1443,32 +1079,14 @@ async def route_b_adaptive(sym, pos_side, qty, entry_px, O, sub="", cmp_tag="", 
         # ① 盈利即平(价格回到成交价)
         if B_BREAKEVEN:
             if (is_long and m >= entry_px) or (not is_long and m <= entry_px):
-                if (sym, pos_side) in exit_in_flight:
-                    return   # WS快路径已接管平仓, 让位避免双平
-                exit_in_flight.add((sym, pos_side))
-                try:
-                    return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B盈利即平", tag=tag), sym, pos_side, sub)
-                finally:
-                    exit_in_flight.discard((sym, pos_side))
+                return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B盈利即平", tag=tag), sym, pos_side, sub)
         # ② 亏损上限(3%止损)
         loss_cap = entry_px * (1 - B_LOSS) if is_long else entry_px * (1 + B_LOSS)
         if (is_long and m <= loss_cap) or (not is_long and m >= loss_cap):
-            if (sym, pos_side) in exit_in_flight:
-                return   # WS快路径已接管平仓, 让位避免双平
-            exit_in_flight.add((sym, pos_side))
-            try:
-                return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B亏损上限", tag=tag), sym, pos_side, sub)
-            finally:
-                exit_in_flight.discard((sym, pos_side))
+            return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B亏损上限", tag=tag), sym, pos_side, sub)
         await asyncio.sleep(0.1)
     # ③ 时间止损
-    if (sym, pos_side) in exit_in_flight:
-        return   # WS快路径已接管平仓, 让位避免双平
-    exit_in_flight.add((sym, pos_side))
-    try:
-        return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B超时", tag=tag), sym, pos_side, sub)
-    finally:
-        exit_in_flight.discard((sym, pos_side))
+    return await _finish_routeB(await market_close(sym, pos_side, qty, entry_px, O, "B超时", tag=tag), sym, pos_side, sub)
 
 
 async def _finish_routeB(ok, sym, pos_side, sub):
@@ -1483,72 +1101,39 @@ async def _finish_routeB(ok, sym, pos_side, sub):
 
 async def market_close(sym, pos_side, qty, entry, O, route,
                        stop_on_shutdown=True, max_tries=0, tag=""):
-    """市价平仓。失败就一直重试（IP 漂移 -2015 时，换连接重试可能绕回白名单节点）。
-    max_tries=0 → 无限重试；stop_on_shutdown=True 时一旦 shutdown 置位立即放弃。
-    【修复·-2022】ReduceOnly 被拒且持仓已为0 → 该仓已被交易所侧(TP限价/条件单)平掉,
-    视为已平成功返回, 不再无限重试。这是 9/23 实盘实锤的倖尸重试循环根因
-    (B2USDT 重试370+次烧穿REST配额触发IP封禁)。"""
-    side = "SELL" if pos_side == "LONG" else "BUY"
-    t0 = time.time(); attempt = 0
-    while max_tries == 0 or attempt < max_tries:
-        attempt += 1
-        c, r = await signed_request(
-            "POST", "/fapi/v1/order",
-            {"symbol": sym, "side": side, "positionSide": pos_side,
-             "type": "MARKET", "quantity": qty})
-        if c == 200:
-            exit_px = float(r.get("avgPrice") or 0) or mid(sym) or entry
-            gross = (exit_px - entry) * qty if pos_side == "LONG" else (entry - exit_px) * qty
-            # 【修复】原只算毛盈亏、未扣手续费 → 统计偏乐观。
-            # 埋伏单是 LIMIT(maker) 成交、市价平仓是 taker，两边各计一次。
-            fee = (entry * FEE_MAKER + exit_px * FEE_TAKER) * qty
-            pnl = gross - fee
-            stats["pnl"] += pnl
-            stats[{"A": "routeA", "B": "routeB"}.get(route, "fallback")] += 1
-            log.info(f"[平仓✓] {('['+tag+'] ') if tag else ''}{sym} {pos_side} 路线{route} 出场@{exit_px} "
-                     f"pnl={pnl:+.4f}U (第{attempt}次, 耗时{time.time()-t0:.1f}s) | "
-                     f"累计{stats['fills']}次 {stats['pnl']:+.4f}U")
-            # 【企业微信通知】平仓通报（含入场→出场价、本笔与累计盈亏）
-            if wecom_notify:
-                wecom_notify.notify_close(sym, pos_side, entry, exit_px, pnl,
-                                          route=route, tag=tag,
-                                          total_pnl=stats["pnl"], fills=stats["fills"])
-            return True
-        # 【修复·-2022】ReduceOnly被拒 → 先查真实持仓; 已为0 = 交易所侧已平, 视为成功并终結
-        if isinstance(r, dict) and r.get("code") == -2022:
-            try:
-                c2, pr = await signed_request("GET", "/fapi/v2/positionRisk", {"symbol": sym}, tries=3)
-                amt = 0.0
-                if c2 == 200 and isinstance(pr, list):
-                    amt = next((float(x.get("positionAmt", 0) or 0) for x in pr
-                                if x.get("positionSide") == pos_side), 0.0)
-                if amt == 0:
-                    log.warning(f"[平仓·已平] {sym} {pos_side} -2022但持仓=0 → 交易所侧已平(TP/SL), "
-                                f"视为已平, 停止重试。需手工核对成交价后再计pnl")
-                    if wecom_notify:
-                        wecom_notify.send_async(
-                            f"埋伏合约通知\nℹ️ {sym} {pos_side} 交易所侧已平仓(TP/SL先成交)\n"
-                            f"脚本市价单被-2022拒绝(正常)\n"
-                            f"脚本侧按已平处理, 盈亏以交易所流水为准\n时间：{wecom_notify._now()}")
-                    return True
-                # 持仓还在但ReduceOnly被拒 = 数量/状态异常, 继续重试但报错可见
-                log.error(f"[平仓✗] {sym} {pos_side} -2022但持仓={amt} → 数量可能不匹配, 继续重试")
-            except Exception as e:
-                log.warning(f"[平仓✗] {sym} {pos_side} -2022后查持仓失败: {e} → 继续重试")
-        if stop_on_shutdown and shutdown.is_set():
-            break
-        back = min(15, attempt * 2)
-        log.error(f"[平仓✗] {sym} {pos_side} 第{attempt}次失败: {str(r)[:80]} → {back}s后重试")
-        await asyncio.sleep(back)
-    log.critical(f"[平仓✗] {sym} {pos_side} x{qty} 路线{route} 未能平掉 → 需手动处理！")
-    return False
+    """【纸面模式】模拟市价平仓。pos_side只处理LONG（卖出持有的币）。"""
+    if pos_side != "LONG":
+        return False
+    t0 = time.time()
+    await asyncio.sleep(random.uniform(0.058, 0.797))  # 模拟真实平仓延迟58~797ms(匹配合约实测)
+    # 纸面平仓：用当前WS价格模拟成交价
+    cur = mid(sym) or entry
+    exit_px = cur * (1 - 0.0002)  # 模拟taker卖出滑点
+    gross = (exit_px - entry) * qty
+    fee = (entry * FEE_TAKER + exit_px * FEE_TAKER) * qty  # 现货两边都是taker
+    pnl = gross - fee
+    stats["pnl"] += pnl
+    stats[{"A": "routeA", "B": "routeB"}.get(route, "fallback")] += 1
+    log.info(f"[平仓✓纸面] {('['+tag+'] ') if tag else ''}{sym} {pos_side} 路线{route} 出场@{exit_px:.8g} "
+             f"pnl={pnl:+.4f}U (耗时{time.time()-t0:.3f}s) | "
+             f"累计{stats['fills']}次 {stats['pnl']:+.4f}U")
+    # 企业微信通知
+    if wecom_notify:
+        wecom_notify.notify_close(sym, pos_side, entry, exit_px, pnl,
+                                  route=route, tag=tag,
+                                  total_pnl=stats["pnl"], fills=stats["fills"])
+    return True
 
-# ── 兜底：每 60s 核对挂单状态（防 WS 漏事件）──────────────────
+# ── 兜底：纸面模式不需要核对挂单状态 ──
 async def fallback_poll():
+    """纸面模式：无真实挂单需要兜底。"""
+    pass
+
+async def _fallback_poll_disabled():
     while not shutdown.is_set():
         await asyncio.sleep(60)
         for oid, o in list(orders.items()):
-            c, r = await signed_request( "GET", "/fapi/v1/order",
+            c, r = await signed_request( "GET", "/api/v3/order",
                                            {"symbol": o["symbol"], "orderId": oid})
             if c == 200 and r.get("status") == "FILLED":
                 log.warning(f"[兜底] {o['symbol']} 订单{oid} 已成交但未收到WS推送 → 立即退出")
@@ -1558,11 +1143,11 @@ async def fallback_poll():
         # 【复核】本策略开的持仓：若已被交易所 TP/SL 平掉（路线B留仓场景），
         # 清 positions_open + 撤残留 TP/SL，释放该币重新埋伏。
         for (sym, ps, _sub), p in list(positions_open.items()):
-            c, pr = await signed_request( "GET", "/fapi/v2/positionRisk",
+            c, pr = await signed_request( "GET", "/api/v3/account",
                                            {"symbol": sym})
             if c == 200 and isinstance(pr, list):
                 amt = next((float(x["positionAmt"]) for x in pr
-                            if x.get("positionSide") == ps and float(x.get("positionAmt", 0)) != 0), 0.0)
+                            if float(x.get("positionAmt", 0)) != 0), 0.0)
                 if amt == 0:
                     log.info(f"[复核] {sym} {ps} 持仓已被交易所平掉(TP/SL) → 清状态, 释放埋伏")
                     for k in [k for k in list(positions_open.keys()) if k[0] == sym]:
@@ -1589,7 +1174,7 @@ async def l_leg_watch(oid, sym):
         await asyncio.sleep(0.5)
         if oid not in orders:      # WS 已先确认成交
             return
-        c, r = await signed_request( "GET", "/fapi/v1/order",
+        c, r = await signed_request( "GET", "/api/v3/order",
                                        {"symbol": sym, "orderId": oid})
         if c != 200:
             continue
@@ -1603,13 +1188,13 @@ async def l_leg_watch(oid, sym):
     # ── 超时撤单 ──
     if oid not in orders:
         return
-    c, r = await signed_request( "DELETE", "/fapi/v1/order",
+    c, r = await signed_request( "DELETE", "/api/v3/order",
                                    {"symbol": sym, "orderId": oid})
     if c == 200:
         orders.pop(oid, None)
         log.info(f"[CMP-L撤单✓] {sym} 订单{oid} {L_TIMEOUT_S:.0f}s未成交 → 已撤 (过期机会不赌)")
     else:
-        c2, r2 = await signed_request( "GET", "/fapi/v1/order",
+        c2, r2 = await signed_request( "GET", "/api/v3/order",
                                          {"symbol": sym, "orderId": oid})
         if c2 == 200 and r2.get("status") == "FILLED":
             log.info(f"[CMP-L成交✓] {sym} 订单{oid} 撤单竞态: 实际已成交 @{r2.get('avgPrice', '?')} → 按成交处理")
@@ -1643,7 +1228,7 @@ def _resident_load_cancel():
         for key, v in d.items():
             try:
                 sym, side = key.split("|")
-                sync_signed_request("DELETE", "/fapi/v1/order",
+                signed_request("DELETE", "/api/v3/order",
                                {"orderId": v["orderId"], "symbol": sym}, tries=2)
                 n += 1
             except Exception:
@@ -1687,7 +1272,7 @@ def _resident_sweep_logs():
             continue
         for aid in s:
             try:
-                c, _r = sync_signed_request("DELETE", "/fapi/v1/order",
+                c, _r = signed_request("DELETE", "/api/v3/order",
                                        {"orderId": aid, "symbol": sym}, tries=2)
                 if c == 200:
                     n += 1
@@ -1709,13 +1294,11 @@ async def _place_conditional(sym, side, trigger, base, register=True):
     qty = calc_qty(sym, trigger, NOTIONAL)
     params = {
         "symbol": sym,
-        "side": side, "positionSide": pos_side,
-        "type": "TAKE_PROFIT_MARKET",
+        "side": side, "type": "TAKE_PROFIT_MARKET",
         "triggerPrice": f"{rnd_price(sym, trigger):.8f}".rstrip("0").rstrip("."),
         "quantity": f"{qty:.8f}".rstrip("0").rstrip("."),
-        "workingType": "CONTRACT_PRICE",
-    }
-    c, r = await signed_request( "POST", "/fapi/v1/order", params, tries=3)
+            }
+    c, r = await signed_request( "POST", "/api/v3/order", params, tries=3)
     if c == 200 and r.get("orderId"):
         aid = int(r["orderId"])
         if register:
@@ -1737,7 +1320,7 @@ async def _cancel_algo_by_id(sym, side, algo_id, quiet=True):
     if not algo_id:
         return True
     try:
-        c, r = await signed_request( "DELETE", "/fapi/v1/order",
+        c, r = await signed_request( "DELETE", "/api/v3/order",
                                        {"orderId": algo_id, "symbol": sym}, tries=3)
         ok = c == 200 or c == 400
         if not quiet or not ok:
@@ -1755,7 +1338,7 @@ async def _cancel_conditional(sym, side, quiet=False):
         return
     _resident_save()
     try:
-        c, r = await signed_request( "DELETE", "/fapi/v1/order",
+        c, r = await signed_request( "DELETE", "/api/v3/order",
                                        {"orderId": v["orderId"], "symbol": sym}, tries=3)
         ok = c == 200 or c == 400
         if not quiet or not ok:
@@ -1791,7 +1374,7 @@ def _open_algo_orders():
     """拉取交易所当前全部 open algo 条件单的**完整对象**列表。失败返回 None。
     反向对账(撤交易所有、登记表没有的孤儿单)需要 symbol/side/type, 只有 algoId 不够。"""
     try:
-        c, data = sync_signed_request("GET", "/fapi/v1/openOrders", tries=2)
+        c, data = signed_request("GET", "/api/v3/openOrders", tries=2)
         if c == 200:
             if isinstance(data, dict):
                 return list(data.get("orders", []))
@@ -1804,7 +1387,7 @@ def _open_algo_orders():
 
 def _open_algo_ids():
     """拉取交易所当前全部 open 条件单的 orderId 集合。
-    GET /fapi/v1/openOrders。失败返回 None(调用方跳过本轮对账)。"""
+    GET /api/v3/openOrders。失败返回 None(调用方跳过本轮对账)。"""
     orders = _open_algo_orders()
     if orders is None:
         return None
@@ -1878,7 +1461,7 @@ async def resident_loop():
     _pr_t = 0.0                                       # positionRisk 兜底上次执行时刻
     log.info(f"[常驻] 循环启动: {len(RUN_SYMBOLS)}币×2侧 | 深度±{RESIDENT_DEPTH:.0%} "
              f"| 漂移{RESIDENT_REPEG:.0%}重挂 | 跟随周期{RES_TICK}s"
-
+             f"{f' | 跳变闸门{ANCHOR_JUMP_GATE:.0%}(超此幅度不跟随=留单接乌龙)' if ANCHOR_JUMP_GATE > 0 else ''}"
              f" | TP/SL/风暴由成交后流水线接管")
     await asyncio.sleep(5)
     n0 = await asyncio.to_thread(_resident_load_cancel)
@@ -1915,7 +1498,7 @@ async def resident_loop():
         if time.time() - _pr_t >= 15:
             _pr_t = time.time()
             try:
-                c, pr = await signed_request( "GET", "/fapi/v2/positionRisk", tries=3)
+                c, pr = await signed_request( "GET", "/api/v3/account", tries=3)
                 if c == 200 and isinstance(pr, list):
                     for x in pr:
                         s = x.get("symbol", "")
@@ -1997,6 +1580,11 @@ async def resident_loop():
                         # 方向判断必要性: 若不分方向, 单向大涨(BUY侧远离触发价)也会被拦 → base永不更新
                         # → 该币埋伏单永久钉死在旧位置失效。故只拦"价格朝触发价扑过来"的那一侧。
                         _danger = (cur < cond["base"]) if side == "BUY" else (cur > cond["base"])
+                        if ANCHOR_JUMP_GATE > 0 and _mv >= ANCHOR_JUMP_GATE and _danger:
+                            log.warning(f"[常驻·跳变闸门] {sym} {side} {RES_TICK}s内朝触发价移动{_mv:.1%}"
+                                        f"(≥{ANCHOR_JUMP_GATE:.0%}) → 判为针尖不跟随, "
+                                        f"保留触发@{cond['trigger']:.8g} 等接货")
+                            continue
                         tr = cur * (1 - RESIDENT_DEPTH) if side == "BUY" else cur * (1 + RESIDENT_DEPTH)
                         old_aid = cond.get("algoId")
                         # 【并发替换 20260909 CEO定】挂新+撤旧同时发出:
@@ -2046,42 +1634,280 @@ async def resident_loop():
 
 # ── 分钟主循环 ───────────────────────────────────────────────
 async def minute_cycle(symbols, notional):
-    """【精简版心跳】CMP模式下只保留：
-    1. 每秒对齐边界sleep
-    2. R循环心跳日志（有效币数 + 累计成交）
-    3. dip_low/peak_high按自然分钟重置（纯内存，供逼近日志用）
-    删除：anchors更新/stale补刷/IP守卫/熔断/重挂/冷却守护（全部在CMP下无效或已被替代）
-    目的：彻底消除R循环对事件循环的阻塞，使_fire_cmp_m触发→下单不再被R循环延迟。"""
     round_no = 0
-    _last_min_no = None
-    P = max(1, int(ANCHOR_SEC))
+    ip_bad = 0
+    _last_min_no = None          # 【秒级锚价】上一次做"分钟级重置"的分钟序号
+    P = max(1, int(ANCHOR_SEC))  # 锚价刷新周期(秒)
     while not shutdown.is_set():
-        # 每秒对齐边界
+        # 下一个锚价刷新边界（服务器对齐）。P=60 时与旧行为完全一致(整分钟)。
         now_srv = time.time() + OFF / 1000
-        P_local = max(1, int(ANCHOR_SEC))
-        boundary = (int(now_srv // P_local) + 1) * P_local - OFF / 1000
+        boundary = (int(now_srv // P) + 1) * P - OFF / 1000
         await asyncio.sleep(max(0.05, boundary - time.time()))
+        # 【秒级锚价】动态阈值的"分钟振幅"统计必须仍按自然分钟滚动，
+        # 否则 P=1 时统计的是1秒振幅 → 动态阈值崩塌(阈值被严重低估)。
+        _min_no = int((time.time() + OFF / 1000) // 60)
+        _cross_min = (_last_min_no is None) or (_min_no != _last_min_no)
+        if _cross_min:
+            _last_min_no = _min_no
+
+        # ② 取 O（锚价）：实时 WS 中间价优先（10s 内新鲜）；过期/缺失→REST 拉最新价【补丁1】；
+        #    REST 也失败才回退 last_mid。
+        #    【补丁1·为什么】原逻辑直接回退 last_mid——但 WS 断流时 last_mid 冻结在断流前
+        #    价格，锚价失真 → 重挂判定 abs(O-ref)≈0 恒成立 → 旧单距真实价无限拉开也不重挂
+        #    （USELESS 事故根因）。stale 币统一用 1 次 REST 全市场 bookTicker 刷新。
+        fresh = {}
+        now_ms = time.time() * 1000
+        excl_pos = excl_nomid = used_stale = ws_fresh_n = rest_n = 0
+        open_pos_syms = {k[0] for k in positions_open.keys()}   # 双键后按 symbol 集合判断
+        stale_syms = []
+        for sym in symbols:
+            if (not CMP_MODE and MODE != "resident") and sym in open_pos_syms:   # 非CMP:有未平仓位→本轮不接针；CMP/resident允许双开→始终刷锚价
+                excl_pos += 1; continue
+            if CMP_MODE or MODE == "resident" or sym in GROUP_A or sym in GROUP_B:
+                # 响应式入场组/CMP：不挂双侧埋伏，仅记录锚价供阈值判定；B组/CMP每分钟重置WS最低
+                m = mids.get(sym)
+                if m:
+                    _p = (m["bid"] + m["ask"]) / 2
+                    # 【spread过滤】bid/ask价差>3%时锚价失真，不更新，保留旧锚价
+                    _spread = (m["ask"] - m["bid"]) / _p if _p > 0 else 0
+                    if _spread < 0.03:
+                        anchors[sym] = _p
+                    # else: spread过大，保留旧锚价（防bookTicker瞬时不平衡导致锚价失真）
+                    if now_ms - m["ts"] < 10_000:
+                        # 【自愈】如果 sym 还不在 anchors（prime 失败），用 WS mid 直接初始化
+                        if sym not in anchors:
+                            anchors[sym] = _p
+                            log.info(f"[自愈] {sym} anchors 初始化 from WS mid={_p}")
+                        fresh[sym] = anchors[sym]; ws_fresh_n += 1   # 计入有效币(修CMP下恒为0的显示bug)
+                if CMP_MODE or sym in GROUP_B:
+                    # 【秒级锚价】以下两项必须仍按自然分钟滚动(动态阈值统计的是"分钟振幅")
+                    if _cross_min:
+                        # 【动态阈值】重置前把"上一分钟"的分钟振幅 (high-low)/low 记入滚动窗口
+                        if DYN_THRESH:
+                            _hi = peak_high.get(sym)
+                            _lo = dip_low.get(sym)
+                            if _hi and _lo and _lo > 0:
+                                min_amp_hist.setdefault(sym, deque(maxlen=VOL_WINDOW)).append((_hi - _lo) / _lo)
+                        dip_low[sym] = None
+                        peak_high[sym] = None
+                else:
+                    anchors[sym] = last_mid.get(sym)   # WS 缺失→回退
+                continue
+            m = mids.get(sym)
+            if m:
+                last_mid[sym] = (m["bid"] + m["ask"]) / 2   # 每次 WS 刷新，非低频币始终实时
+                if now_ms - m["ts"] < 10_000:
+                    fresh[sym] = (m["bid"] + m["ask"]) / 2
+                    ws_fresh_n += 1
+                    continue
+            stale_syms.append(sym)
+        rest_fixed = set()
+        if stale_syms:
+            rest_fixed = await asyncio.to_thread(rest_refresh_anchors, stale_syms) or set()
+            rest_n = len(rest_fixed)
+        # 【保险层】对所有 anchors 仍为空的币，用批量 bookTicker 一次性补刷
+        missing_anchors = [s for s in symbols if s not in anchors]
+        if missing_anchors:
+            log.info(f"[补刷] {len(missing_anchors)} 个币 anchors 为空，批量 bookTicker 补刷")
+            patch_fixed = await asyncio.to_thread(rest_refresh_anchors, missing_anchors) or set()
+            for sym in patch_fixed:
+                if sym not in last_mid:
+                    continue
+                m = mids.get(sym)
+                if m and now_ms - m["ts"] < 10_000:
+                    anchors[sym] = (m["bid"] + m["ask"]) / 2
+                    fresh[sym] = anchors[sym]
+                    ws_fresh_n += 1
+                elif sym in last_mid:
+                    anchors[sym] = last_mid[sym]
+                    fresh[sym] = last_mid[sym]
+            log.info(f"[补刷] 成功 {len(patch_fixed)} 个")
+        for sym in stale_syms:
+            if sym in last_mid:
+                fresh[sym] = last_mid[sym]
+                if sym not in rest_fixed:
+                    used_stale += 1        # REST 也没刷到的才计入真回退（冻结旧价，危险态）
+            else:
+                excl_nomid += 1
+        n = len(fresh)
+        stats["cov_min"] = min(stats["cov_min"], n)
+        stats["cov_sum"] += n; stats["cov_n"] += 1
+        stats["anchor_stale"] += used_stale
+
+        # ① 重挂判定：价格相对上次挂单价偏移 >= REPRICE_THRESH 才重挂；否则保留原单（降撤挂比，防-4400）
+        reprice = {}
+        skipped = 0
+        for sym, O in fresh.items():
+            ref = last_ref.get(sym)
+            if ref is None or abs(O - ref) / ref >= REPRICE_THRESH:
+                reprice[sym] = O
+            else:
+                skipped += 1
+        # CMP / 响应式A/B组：不挂双侧埋伏，只响应式触发才下单 → 跳过重挂
+        # （否则每轮对357币尝试下双边限价单，全被币安拒但白耗~714次API且有429风险）
+        if CMP_MODE or GROUP_A or GROUP_B or MODE == "resident":
+            reprice = {}
+
+        # ⓪ IP 守卫（提前到撤/挂之前：漂移期间只保留旧单，不撤不挂，杜绝洞与单腿事故）
+        #    【秒级锚价解耦】P=1 时整轮每秒跑一次，IP 守卫若每秒打外网探测站会拖累循环且易触发探测站限流。
+        #    故仅在「整分钟边界」或「已处于 IP 异常(ip_bad>0)需快速恢复」时才查；IP 锁定时不会每秒变,
+        #    最长 60s 即可发现漂移, 与旧 P=60 行为等价。
+        if EXPECTED_IPS and (_cross_min or ip_bad):
+            ip = await asyncio.to_thread(exit_ip)
+            if ip is None:
+                # 探测站全挂：不让"查不到IP"等价于"IP不对"(2026-09-04 误拦29分钟的根因)。
+                # 改由币安自己裁决：能收签名请求=放行，回 -2015=确实没白名单，网络不通=保守拦。
+                ok, why = await asyncio.to_thread(binance_ip_ok)
+                gate_bad = not ok
+                gate_msg = f"出口IP探测失败(探测站全不可达) → 币安自检: {why}"
+            else:
+                gate_bad = (ip not in EXPECTED_IPS)
+                gate_msg = f"出口IP={ip} 不在白名单{sorted(EXPECTED_IPS)}"
+            if gate_bad:
+                ip_bad += 1; stats["ip_bad_rounds"] += 1
+                log.error(f"[IP守卫✗] {gate_msg} → 本轮不撤不挂(保留旧单,连续{ip_bad}轮)")
+                # ── 企业微信告警(非阻塞守护线程, 不卡交易循环; 同一次异常每300s最多1条) ──
+                if wecom_notify is not None and (time.time() - _ip_alert_throttle["ts"] > 300):
+                    _ip_alert_throttle["ts"] = time.time()
+                    wecom_notify.send_async(
+                        f"⚠️ ambush_{MODE} IP异常! {gate_msg}\n"
+                        f"→ 本轮只保留旧单不撤不挂(杜绝单腿事故), 但陈旧限价单仍可能被漂移价成交!\n"
+                        f"→ 请尽快把该出口IP加入币安API白名单, 或切换Clash节点回白名单。\n"
+                        f"连续{ip_bad}轮 | 时间 {datetime.now().strftime('%H:%M:%S')}")
+                round_no += 1; stats["rounds"] = round_no
+                if MAX_ROUNDS and round_no > MAX_ROUNDS:
+                    log.info(f"[停止] 已达 max-rounds={MAX_ROUNDS}"); shutdown.set(); return
+                log.info(f"[R{round_no}] 有效币 {n}/{len(symbols)} | IP漂移 0重挂 | 实时{n - used_stale} 回退{used_stale} | 保留旧单")
+                continue
+            if ip_bad:
+                log.info(f"[IP守卫✓] 出口IP恢复 {ip} → 恢复挂单")
+                if wecom_notify is not None:
+                    wecom_notify.send_async(f"✅ ambush_{MODE} 出口IP已恢复 {ip} → 恢复挂单/撤单")
+                if not (CMP_MODE or GROUP_A or GROUP_B) and len(lev_set) < len(symbols):
+                    # IP 不在白名单期间漏设的杠杆，恢复后自动补齐（后台跑，不阻塞本轮回测）
+                    asyncio.create_task(asyncio.to_thread(set_max_leverage, symbols))
+            ip_bad = 0
+
+        # ⓪⓪ 系统性事件熔断：全市场一起插针时，58 币埋伏单会被同时击穿且不回弹。
+        #     触发 → 撤掉自己全部挂单 + 停止挂新单（已有持仓仍照常走平仓流程）。
+        global halt_until, halt_reason
+        if time.time() < halt_until:
+            left = int(halt_until - time.time())
+            log.warning(f"[熔断中] {halt_reason} → 剩余 {left // 60}分{left % 60}秒，本轮不挂单")
+            round_no += 1; stats["rounds"] = round_no
+            if MAX_ROUNDS and round_no > MAX_ROUNDS:
+                log.info(f"[停止] 已达 max-rounds={MAX_ROUNDS}"); shutdown.set(); return
+            continue
+        n_spike, thr = circuit_state()
+        if n_spike >= thr:
+            halt_until = time.time() + SPIKE_COOLDOWN
+            halt_reason = (f"{SPIKE_WINDOW:.0f}s内 {n_spike} 个标的插针"
+                           f"≥{SPIKE_PCT:.0%}(阈值{thr})")
+            log.critical(f"[熔断!] {halt_reason} → 判定系统性事件，撤全部挂单并冷却 "
+                         f"{SPIKE_COOLDOWN / 60:.0f} 分钟")
+            stats["halt_count"] = stats.get("halt_count", 0) + 1
+            for oid, o in list(orders.items()):
+                c, r = await signed_request( "DELETE", "/api/v3/order",
+                                               {"symbol": o["symbol"], "orderId": oid})
+                if c == 200:
+                    orders.pop(oid, None)
+            round_no += 1; stats["rounds"] = round_no
+            continue
+
+        # ① 原子重挂：先挂新单→成功才撤旧单；挂不上(-4400/IP等)→保留旧单+进冷却，绝不产生洞
+        reprice_done = 0
+        sem = asyncio.Semaphore(6)
+
+        async def reprice_coin(sym, O):
+            nonlocal reprice_done, skipped
+            if reprice_cooldown.get(sym, 0) > round_no:   # 冷却中→保留旧单不重挂
+                skipped += 1; return
+            old_oids = [oid for oid, o in list(orders.items()) if o["symbol"] == sym]
+            placed = []
+            fail = False
+            async with sem:
+                buy_px = rnd_price(sym, O * (1 - DEPTH)); sell_px = rnd_price(sym, O * (1 + DEPTH))
+                for side, px in (("BUY", buy_px), ("SELL", sell_px)):
+                    qty = calc_qty(sym, px, notional)
+                    c, r = await signed_request(
+                        "POST", "/api/v3/order",
+                        {"symbol": sym, "side": side,
+                         "type": "LIMIT", "timeInForce": "GTC", "price": f"{px:.8f}".rstrip("0").rstrip("."),
+                         "quantity": f"{qty:.8f}".rstrip("0").rstrip(".")})
+                    if c == 200:
+                        orders[int(r["orderId"])] = {"symbol": sym, "side": side, "price": px,
+                                                     "qty": qty, "O": O, "round": round_no}
+                        placed.append(int(r["orderId"]))
+                    else:
+                        log.warning(f"[挂单✗] {sym} {side}@{px}: {str(r)[:70]}")
+                        fail = True; break
+            if not fail and len(placed) == 2:
+                # 新单双侧成功 → 撤旧单（旧单按原锚价守护直到成功撤除）
+                for oid in old_oids:
+                    if oid in orders:
+                        c2, r2 = await signed_request( "DELETE", "/api/v3/order",
+                                                         {"symbol": sym, "orderId": oid})
+                        if c2 == 200:
+                            orders.pop(oid, None)
+                        else:
+                            log.warning(f"[撤旧✗] {sym} 旧单{oid} 撤失败({str(r2)[:40]}) → 保留(下轮再清)")
+                last_ref[sym] = O
+                reprice_done += 1
+            else:
+                # 挂新失败 → 保留旧单不撤，杜绝洞。
+                # 【修复】原无条件冻结 30 轮(≈30 分钟)：IP 漂移、网络抖动这类几分钟内
+                # 自愈的故障也被罚 30 分钟；58 币在不同轮次阶梯式失败会把恢复期拉到半天。
+                # 改为仅 -4400（账户级量化风控，确实需要长冷却）才冻结，其余下轮重试。
+                if "-4400" in str(r):
+                    reprice_cooldown[sym] = round_no + REPRICE_COOLDOWN
+                    log.warning(f"[重挂✗] {sym} -4400 风控→保留旧单,冷却{REPRICE_COOLDOWN}轮")
+                else:
+                    reprice_cooldown[sym] = round_no + 1
+                    log.warning(f"[重挂✗] {sym} 新单未挂上({str(r)[:40]})→保留旧单,下轮重试")
+
+        await asyncio.gather(*[reprice_coin(s, O) for s, O in reprice.items()])
+
+        # 注: resident 模式的条件单重挂**不在此处** —— 它有独立的 resident_loop()
+        #     逐币维护路径(实时价跟随, RESIDENT_REPEG=2% 阈值, 周期=RES_TICK 秒)。
+        #     此处若再加一条会变成双路径, 同一次 2% 移动被撤挂两次 → API 翻倍。切勿重复实现。
+
+        # 【补丁2·冷却期爬单守护】重挂失败进冷却（如 -4400 冻结30轮）后旧单钉在旧锚价不动，
+        # 而真实价仍在缓慢漂移——USELESS 事故中价格 34 分钟爬 +10.6% 吃掉旧 SELL 单。
+        # 冷却期内每轮检查：旧单价距当前锚价 <FREEZE_PULL_MARGIN 即将被动成交 → 立即撤掉。
+        # 代价是该侧空窗到冷却结束——宁可没单，不可有必死单。
+        pull_n = 0
+        for sym in [s for s, cd in reprice_cooldown.items() if cd > round_no]:
+            O_now = fresh.get(sym)
+            if not O_now or O_now <= 0:
+                continue
+            for oid, o in list(orders.items()):
+                if o["symbol"] != sym or o["price"] <= 0:
+                    continue
+                if abs(O_now - o["price"]) / o["price"] >= FREEZE_PULL_MARGIN:
+                    continue
+                c, r = await signed_request( "DELETE", "/api/v3/order",
+                                               {"symbol": sym, "orderId": oid})
+                if c == 200:
+                    orders.pop(oid, None); pull_n += 1
+                    log.warning(f"[冷却守护] {sym} 旧单{oid}@{o['price']} 距真实价{O_now:.8g} "
+                                f"<{FREEZE_PULL_MARGIN:.0%} → 强制撤(防爬单)")
+                else:
+                    log.warning(f"[冷却守护✗] {sym} 旧单{oid} 撤失败: {str(r)[:60]}")
+        if pull_n:
+            log.info(f"[冷却守护] 本轮强制撤 {pull_n} 笔危险旧单")
 
         round_no += 1
         stats["rounds"] = round_no
-
-        # 【自然分钟重置】dip_low/peak_high供逼近日志用，仍按分钟滚动
-        _min_no = int((time.time() + OFF / 1000) // 60)
-        if (_last_min_no is None) or (_min_no != _last_min_no):
-            _last_min_no = _min_no
-            for sym in RUN_SYMBOLS:
-                dip_low[sym] = None
-                peak_high[sym] = None
-
         if MAX_ROUNDS and round_no > MAX_ROUNDS:
             log.info(f"[停止] 已达 max-rounds={MAX_ROUNDS}")
             shutdown.set(); return
 
-        # 心跳日志
-        _d = DEPTH
-        n_valid = sum(1 for s in RUN_SYMBOLS if mids.get(s))
-        log.info(f"[R{round_no}] 有效币 {n_valid}/{len(RUN_SYMBOLS)} | 重挂0 | "
-                 f"实时{n_valid} REST0 回退0 | 对比CMP监控(响应式M+L双单) ±{_d:.0%}...")
+        _d = RESIDENT_DEPTH if MODE == "resident" else DEPTH
+        mode_tag = ("对比CMP监控(响应式M+L双单)" if CMP_MODE
+                    else "常驻条件单监控(平台托管)" if MODE == "resident" else "挂双侧埋伏")
+        skip_tag = "" if CMP_MODE else f" 跳过{skipped}"
+        log.info(f"[R{round_no}] 有效币 {n}/{len(symbols)} | 重挂{reprice_done}{skip_tag} "
+                 f"| 实时{ws_fresh_n} REST{rest_n} 回退{used_stale} | {mode_tag} ±{_d:.0%}...")
         log.info(f"[R{round_no}] 挂单 {len(orders)} 笔 | 累计成交{stats['fills']}次 "
                  f"pnl={stats['pnl']:+.4f}U")
 
@@ -2119,8 +1945,7 @@ def _clock_resync():
     global OFF
     try:
         t_send = int(time.time() * 1000)
-        r = client_sync().get(f"https://{_API_IP}/api/v3/time",
-                         headers={"Host": _API_HOST}, timeout=10)
+        r = client_sync().get(f"{PAPI}/api/v3/time", timeout=10)
         t_recv = int(time.time() * 1000)
         srv = int(r.json()["serverTime"])
         rtt = t_recv - t_send
@@ -2135,23 +1960,22 @@ def _clock_resync():
 
 
 async def _poll_m_fill(oid, sym, qty_hint, tag=""):
-    """【修复·60s盲区】M市价单同步回报未确认成交时，REST轮询订单状态(0.1s×15s)。
-    REST轮询为主（UserData WS子账户0推送）。币安市价单实际300ms内成交，
-    缺的只是回报 → 轮询一击即中。首次查询不sleep，后续每0.1s。
-    查到 FILLED → on_fill 挂TP/SL；15s仍未成交(极罕见) → 交给用户流/兜底轮询。"""
-    for i in range(150):
+    """【修复·60s盲区】M市价单同步回报未确认成交时，REST轮询订单状态(0.5s×15s)。
+    币安市价单实际300ms内成交(DASH/APR实测)，缺的只是回报 → 轮询一击即中。
+    查到 FILLED → on_fill 挂TP/SL；15s仍未成交(极罕见) → 交给用户流/兜底轮询。
+    REST轮询为主（UserData WS子账户0推送）。"""
+    for i in range(30):
         if shutdown.is_set():
             return
-        if i > 0:                    # 首次不sleep，后续0.1s
+        if i > 0:
             await asyncio.sleep(0.1)
         if oid not in orders:        # 已被其他路径成交处理
             return
-        c, r = await asyncio.to_thread(
-            sync_signed_request, "GET", "/fapi/v1/order",
-            {"symbol": sym, "orderId": oid})
+        c, r = await signed_request( "GET", "/api/v3/order",
+                                       {"symbol": sym, "orderId": oid})
         if c == 200 and (r.get("status") == "FILLED") and float(r.get("avgPrice") or 0) > 0:
             log.info(f"[M成交轮询✓{tag}] {sym} 订单{oid} REST确认 @{r['avgPrice']} "
-                     f"(第{i+1}次轮询, {i*0.1:.1f}s内) → 立即挂TP/SL")
+                     f"(第{i+1}次轮询, {(i+1)*0.5:.1f}s内) → 立即挂TP/SL")
             await on_fill(oid, float(r["avgPrice"]), float(r.get("executedQty") or qty_hint), sym)
             return
         if c == 200 and r.get("status") in ("CANCELED", "EXPIRED", "REJECTED"):
@@ -2160,100 +1984,33 @@ async def _poll_m_fill(oid, sym, qty_hint, tag=""):
     log.warning(f"[M成交轮询超时{tag}] {sym} 订单{oid} 15s未查到成交 → 交给用户流/兜底")
 
 
-def sync_fire_cmp_m(sym, side, p, px):
-    """【独立线程版】用sync_signed_request执行，完全脱离asyncio事件循环。
-    POST后同步轮询GET（最多3次×50ms），直到FILLED拿到真实avgPrice，
-    省去兜底8秒延迟，成交价准确。触发→成交目标：~30~150ms。"""
-    tid, anc = p["tid"], p["anc"]
-    tag = "" if side == "LONG" else "空"
-    bs  = "BUY" if side == "LONG" else "SELL"
-    qty = calc_qty(sym, px, NOTIONAL)
-    c, r = sync_signed_request(
-        "POST", "/fapi/v1/order",
-        {"symbol": sym, "side": bs, "positionSide": side,
-         "type": "MARKET", "quantity": f"{qty:.8f}".rstrip("0").rstrip(".")})
-    if c == 200:
-        oid = int(r["orderId"])
-        orders[oid] = {"symbol": sym, "side": bs, "price": px,
-                       "qty": qty, "O": anc, "round": -1,
-                       "cmp": "M", "trigger_id": tid, "sub": f"{tid}:M",
-                       "depth": p.get("depth")}
-        log.info(f"[CMP-M✓{tag}] {sym} tid={tid} 线程直发(0阻塞) → "
-                 f"市价{'买' if side == 'LONG' else '卖空'} x{qty} @≈{px:.8g}")
-        # 同步轮询GET确认真实成交价（最多3次，每次间隔50ms）
-        import time as _time
-        ap_m = float(r.get("avgPrice") or 0) or px  # 先用回包估价作默认
-        eq   = float(r.get("executedQty") or qty)
-        for _i in range(3):
-            _time.sleep(0.01)
-            c2, r2 = sync_signed_request("GET", "/fapi/v1/order",
-                                         {"symbol": sym, "orderId": oid})
-            if c2 == 200 and r2.get("status") == "FILLED" and float(r2.get("avgPrice") or 0) > 0:
-                ap_m = float(r2["avgPrice"])
-                eq   = float(r2.get("executedQty") or qty)
-                log.info(f"[CMP-M成交✓{tag}] {sym} 轮询第{_i+1}次确认 @{ap_m} → 立即挂TP/SL({(_i+1)*50}ms)")
-                break
-        else:
-            log.info(f"[CMP-M成交✓{tag}] {sym} 轮询未FILLED，回退回包 @{ap_m} → 立即挂TP/SL")
-        # 更新orders里的真实成交数量
-        orders[oid]["qty"] = eq
-        ev = cmp_events.get(tid)
-        if ev is not None:
-            ev["M_oid"] = oid
-        # on_fill需要在事件循环里执行，用启动时保存的主loop地址（子线程get_event_loop()不可靠）
-        import asyncio as _aio
-        try:
-            loop = _MAIN_LOOP
-            if loop and loop.is_running():
-                _aio.run_coroutine_threadsafe(on_fill(oid, ap_m, eq, sym), loop)
-            else:
-                log.warning(f"[sync_fire] _MAIN_LOOP未就绪或已停止，on_fill无法提交")
-        except Exception as _e:
-            log.warning(f"[sync_fire] on_fill提交失败: {_e}")
-    else:
-        log.warning(f"[CMP-M✗{tag}] {sym} tid={tid} 市价下单失败: {str(r)[:70]}")
-
 async def _fire_cmp_m(sym, side, p, px):
-    """下 M 市价单（同步回报即挂TP/SL，不等WS）。p = 触发条目{"tid","anc","depth",...}。
+    """【纸面模式】模拟 M 市价单——不下真单，用触发时WS价格+300ms模拟延迟，然后直接走 on_fill。
+    p = 触发条目{"tid","anc","depth",...}。
     REBOUND_ON=True 时由反弹确认调用；False(现行)时触发即调用。"""
     tid, anc = p["tid"], p["anc"]
     tag = "" if side == "LONG" else "空"
     bs = "BUY" if side == "LONG" else "SELL"
     qty = calc_qty(sym, px, NOTIONAL)
-    c, r = await signed_request(
-        "POST", "/fapi/v1/order",
-        {"symbol": sym, "side": bs, "positionSide": side,
-         "type": "MARKET", "quantity": f"{qty:.8f}".rstrip("0").rstrip(".")})
-    if c == 200:
-        oid = int(r["orderId"])
-        orders[oid] = {"symbol": sym, "side": bs, "price": px,
-                       "qty": qty, "O": anc, "round": -1,
-                       "cmp": "M", "trigger_id": tid, "sub": f"{tid}:M",
-                       "depth": p.get("depth")}
-        if REBOUND_ON:
-            log.info(f"[CMP-M✓{tag}] {sym} tid={tid} 反弹确认(自极值{p['ext']:.8g} {REBOUND_PCT:.1%}) → "
-                     f"市价{'买' if side == 'LONG' else '卖空'} x{qty} @≈{px:.8g}")
-        else:
-            log.info(f"[CMP-M✓{tag}] {sym} tid={tid} 立即市价开火(10%大针无确认) → "
-                     f"市价{'买' if side == 'LONG' else '卖空'} x{qty} @≈{px:.8g}")
-        # 【提速·方案A】市价单后立即查询真实成交价，然后挂TP/SL
-        # 币安合约市价单几乎100%成交，立即查询可获取真实avgPrice（消除滑点误差）
-        # 总延迟：33ms(下单) + 33ms(查询) = 66ms，仍比之前的1.898秒快30倍
-        c2, r2 = await signed_request(
-            "GET", "/fapi/v1/order",
-            {"symbol": sym, "orderId": oid})
-        if c2 == 200 and r2.get("status") == "FILLED" and float(r2.get("avgPrice") or 0) > 0:
-            ap_m = float(r2["avgPrice"])  # 真实成交价
-            log.info(f"[CMP-M成交✓{tag}] {sym} 查询确认 @{ap_m} → 立即挂TP/SL(66ms)")
-        else:
-            ap_m = float(r.get("avgPrice") or px)  # 回退
-            log.info(f"[CMP-M成交✓{tag}] {sym} 查询未FILLED，回退 @{ap_m} → 立即挂TP/SL")
-        spawn(on_fill(oid, ap_m, qty, sym))
-        ev = cmp_events.get(tid)
-        if ev is not None:
-            ev["M_oid"] = oid
+    # 【纸面模式】不调 signed_request 真实下单，用 WS 当前价格模拟成交价
+    await asyncio.sleep(random.uniform(0.058, 0.797))  # 模拟真实下单延迟58~797ms(匹配合约实测)
+    sim_fill_px = px  # 用触发时WS价格作为模拟成交价
+    oid = -int(time.time() * 1000) % 1000000  # 负数假ID，避免与真实orderId冲突
+    orders[oid] = {"symbol": sym, "side": bs, "price": px,
+                   "qty": qty, "O": anc, "round": -1,
+                   "cmp": "M", "trigger_id": tid, "sub": f"{tid}:M",
+                   "depth": p.get("depth")}
+    if REBOUND_ON:
+        log.info(f"[CMP-M✓{tag}] {sym} tid={tid} 反弹确认(自极值{p['ext']:.8g} {REBOUND_PCT:.1%}) → "
+                 f"模拟市价{'买' if side == 'LONG' else '卖空'} x{qty} @≈{px:.8g}")
     else:
-        log.warning(f"[CMP-M✗{tag}] {sym} tid={tid} 市价下单失败: {str(r)[:70]}")
+        log.info(f"[CMP-M✓{tag}] {sym} tid={tid} 立即纸面开火(10%大针无确认) → "
+                 f"模拟市价{'买' if side == 'LONG' else '卖空'} x{qty} @≈{px:.8g}")
+    log.info(f"[CMP-M成交✓{tag}] {sym} 纸面模拟成交 @{sim_fill_px} → 立即走 on_fill")
+    spawn(on_fill(oid, sim_fill_px, qty, sym))
+    ev = cmp_events.get(tid)
+    if ev is not None:
+        ev["M_oid"] = oid
 
 
 async def reactive_entry_loop():
@@ -2328,42 +2085,32 @@ async def reactive_entry_loop():
                 ph = peak_high.get(sym)
                 if ph is None or cur_bt > ph:
                     peak_high[sym] = cur_bt
-            depth = DEPTH  # 固定阈值6%
-            # 【逼近/触发阈值用100ms窗口锚价】与WS触发判断保持一致，避免实时锚价导致差值≈0
-            _now_mc_ms = int(time.time() * 1000)
-            _hist_mc = price_hist.get(sym)
-            anc_trig = None
-            if _hist_mc:
-                for _hts, _hpx in _hist_mc:
-                    if _now_mc_ms - _hts >= 80:
-                        anc_trig = _hpx
-            if not anc_trig:
-                anc_trig = anc  # 历史不够则回退实时锚价
-            thr    = anc_trig * (1 - depth)      # 多单触发：跌穿100ms前锚价 depth%
-            thr_up = anc_trig * (1 + depth)      # 空单触发：涨破100ms前锚价 depth%
+            depth = dynamic_depth(sym)           # 动态阈值：平静币收紧/剧烈币放宽（关闭时=固定DEPTH）
+            thr = anc * (1 - depth)              # 多单触发：跌穿锚价 depth%
+            thr_up = anc * (1 + depth)           # 空单触发：涨破锚价 depth%
             # 【逼近日志】价格进入"阈值-2%带内但还没触发"时打一条，证明 bot 真在盯盘(非空转)。
             # 下跌带→[逼近](多单)；上涨带→[逼近↑](空单)。每币每5分钟最多1条。
-            band_lo = max(depth * 0.5, 0.01)   # 带下限=阈值×0.5
+            band_lo = max(depth * 0.5, 0.01)   # 【修复】带下限=阈值×0.5(原 depth-2%，2%阈值时带[0,2%)被噪音刷屏)
             if band_lo > 0:
-                drop_pct = (anc_trig - cur_bt) / anc_trig
+                drop_pct = (anc - cur_bt) / anc
                 if band_lo <= drop_pct < depth:
                     nl = near_miss_ts.get(sym, 0)
                     if now - nl > 300:
                         near_miss_ts[sym] = now
                         log.info(f"[逼近] {sym} 距阈值 {drop_pct:.1%}(阈值{depth:.0%}) "
-                                 f"| 锚(100ms){anc_trig:.8f} 现{cur_bt:.8f} — 未触发,继续盯")
-                rise_pct = (cur_bt - anc_trig) / anc_trig
+                                 f"| 锚{anc:.8f} 现{cur_bt:.8f} — 未触发,继续盯")
+                rise_pct = (cur_bt - anc) / anc
                 if band_lo <= rise_pct < depth:
                     nl = near_miss_ts.get(sym + "↑", 0)
                     if now - nl > 300:
                         near_miss_ts[sym + "↑"] = now
                         log.info(f"[逼近↑] {sym} 距阈值 {rise_pct:.1%}(阈值{depth:.0%}) "
-                                 f"| 锚(100ms){anc_trig:.8f} 现{cur_bt:.8f} — 未触发,继续盯")
+                                 f"| 锚{anc:.8f} 现{cur_bt:.8f} — 未触发,继续盯")
             # 【aggTrade补盲】bookTicker逼近但没触发时，主动拉最近1笔aggTrade成交价
             # 解决WS不推送低流动性币aggTrade的问题（REUSD1/币安人生USD1等）
             if band_lo <= drop_pct < depth:
                 try:
-                    _st, _at = await signed_request("GET", "/fapi/v1/aggTrades", params={"symbol": sym, "limit": 1})
+                    _st, _at = await public_get("/api/v3/aggTrades", params={"symbol": sym, "limit": 1})
                     if _st == 200 and isinstance(_at, list) and len(_at) > 0:
                         _at_px = float(_at[0]["p"])
                         _at_age = int(time.time() * 1000) - int(_at[0].get("T", 0))
@@ -2388,11 +2135,7 @@ async def reactive_entry_loop():
                 if _entry_lock.get((sym, "LONG"), False):
                     continue
                 _entry_lock[(sym, "LONG")] = True
-                await ensure_leverage(sym)
-                for ksub in [k for k in list(tp_limits.keys()) if k[0] == sym and k[1] == "LONG"]:
-                    await cancel_tp_limit(sym, "LONG", quiet=True, sub=ksub[2])
-                for ksub in [k for k in list(algo_stops.keys()) if k[0] == sym and k[1] == "LONG"]:
-                    await cancel_stop_algo(sym, "LONG", quiet=True, sub=ksub[2])
+                # 现货纸面模式：无杠杆、无TP/SL条件单
                 if CMP_MODE:
                     tid = f"T{cmp_seq_incr():04d}"
                     p = {"tid": tid, "anc": anc, "depth": depth, "t0": now, "ext": cur_bt}
@@ -2408,11 +2151,10 @@ async def reactive_entry_loop():
                 if _entry_lock.get((sym, "LONG"), False):
                     continue
                 _entry_lock[(sym, "LONG")] = True
-                await ensure_leverage(sym)
                 for ksub in [k for k in list(tp_limits.keys()) if k[0] == sym and k[1] == "LONG"]:
-                    await cancel_tp_limit(sym, "LONG", quiet=True, sub=ksub[2])
+                    asyncio.create_task(cancel_tp_limit(sym, "LONG", quiet=True, sub=ksub[2]))
                 for ksub in [k for k in list(algo_stops.keys()) if k[0] == sym and k[1] == "LONG"]:
-                    await cancel_stop_algo(sym, "LONG", quiet=True, sub=ksub[2])
+                    asyncio.create_task(cancel_stop_algo(sym, "LONG", quiet=True, sub=ksub[2]))
                 if CMP_MODE:
                     tid = f"T{cmp_seq_incr():04d}"
                     p = {"tid": tid, "anc": anc, "depth": depth, "t0": now, "ext": cur_at}
@@ -2424,52 +2166,16 @@ async def reactive_entry_loop():
                     # entry_cooldown[(sym, "LONG", "AT")] = now + 60  # 暂时关闭cooldown测试
                     await _fire_cmp_m(sym, "LONG", p, cur_at)
             # ── A组：bookTicker检测 → 空单（接闪涨针）──
-            if cur_bt > thr_up and not pos_short and entry_cooldown.get((sym, "SHORT", "BT"), 0) <= now:
-                if _entry_lock.get((sym, "SHORT"), False):
-                    continue
-                _entry_lock[(sym, "SHORT")] = True
-                await ensure_leverage(sym)
-                for ksub in [k for k in list(tp_limits.keys()) if k[0] == sym and k[1] == "SHORT"]:
-                    await cancel_tp_limit(sym, "SHORT", quiet=True, sub=ksub[2])
-                for ksub in [k for k in list(algo_stops.keys()) if k[0] == sym and k[1] == "SHORT"]:
-                    await cancel_stop_algo(sym, "SHORT", quiet=True, sub=ksub[2])
-                if CMP_MODE:
-                    tid = f"T{cmp_seq_incr():04d}"
-                    p = {"tid": tid, "anc": anc, "depth": depth, "t0": now, "ext": cur_bt}
-                    log.info(f"[CMP触发✓空] {sym} tid={tid} src=BT 锚{anc:.8f} +{depth:.0%} | "
-                             f"M立即市价开火 | 成交后走 on_fill 流水线(路线A/路线B)")
-                    cmp_events[tid] = {"sym": sym, "pos_side": "SHORT", "t": now, "anchor": anc,
-                                       "thr": thr_up, "mkt_px": cur_bt, "src": "BT",
-                                       "M_oid": None, "L_oid": None}
-                    # entry_cooldown[(sym, "SHORT", "BT")] = now + 60  # 暂时关闭cooldown测试
-                    await _fire_cmp_m(sym, "SHORT", p, cur_bt)
+            # 现货纸面模式：不做SHORT（现货不能做空），已彻底删除
             # ── B组：aggTrade检测 → 空单（独立冷却，AB对照）──
-            if cur_at is not None and cur_at > thr_up and not pos_short and entry_cooldown.get((sym, "SHORT", "AT"), 0) <= now:
-                if _entry_lock.get((sym, "SHORT"), False):
-                    continue
-                _entry_lock[(sym, "SHORT")] = True
-                await ensure_leverage(sym)
-                for ksub in [k for k in list(tp_limits.keys()) if k[0] == sym and k[1] == "SHORT"]:
-                    await cancel_tp_limit(sym, "SHORT", quiet=True, sub=ksub[2])
-                for ksub in [k for k in list(algo_stops.keys()) if k[0] == sym and k[1] == "SHORT"]:
-                    await cancel_stop_algo(sym, "SHORT", quiet=True, sub=ksub[2])
-                if CMP_MODE:
-                    tid = f"T{cmp_seq_incr():04d}"
-                    p = {"tid": tid, "anc": anc, "depth": depth, "t0": now, "ext": cur_at}
-                    log.info(f"[CMP触发✓空] {sym} tid={tid} src=AT 锚{anc:.8f} +{depth:.0%} | "
-                             f"M立即市价开火 | 成交后走 on_fill 流水线(路线A/路线B)")
-                    cmp_events[tid] = {"sym": sym, "pos_side": "SHORT", "t": now, "anchor": anc,
-                                       "thr": thr_up, "mkt_px": cur_at, "src": "AT",
-                                       "M_oid": None, "L_oid": None}
-                    # entry_cooldown[(sym, "SHORT", "AT")] = now + 60  # 暂时关闭cooldown测试
-                    await _fire_cmp_m(sym, "SHORT", p, cur_at)
+            # 现货纸面模式：不做SHORT（现货不能做空），已彻底删除
 
 # ── 收尾 ─────────────────────────────────────────────────────
 async def final_cleanup(symbols):
     log.info("[收尾] 撤销自己的挂单…")
     old = dict(orders); orders.clear()
     for oid, o in old.items():
-        c, r = await signed_request( "DELETE", "/fapi/v1/order",
+        c, r = await signed_request( "DELETE", "/api/v3/order",
                                        {"symbol": o["symbol"], "orderId": oid})
         log.info(f"[收尾] 撤 {o['symbol']} {oid}: {'OK' if c == 200 else str(r)[:60]}")
     log.info("[收尾] 平自己开的仓…")
@@ -2498,7 +2204,7 @@ async def final_cleanup(symbols):
     # 【企业微信通知】停止播报（收尾平仓后同步发一次，阻塞也没关系了）
     if wecom_notify:
         wecom_notify._send_text(
-            f"埋伏合约通知\n⏹ 合约埋伏已停止\n"
+            f"埋伏现货通知\n⏹ 现货纸面埋伏已停止\n"
             f"成交：{stats['fills']} 次 | 总盈亏：{stats['pnl']:+.4f} USDT\n"
             f"A:{stats['routeA']} B:{stats['routeB']} 兜底:{stats['fallback']}\n"
             f"时间：{wecom_notify._now()}")
@@ -2530,7 +2236,6 @@ def release_lock():
 # ── 主入口 ───────────────────────────────────────────────────
 async def main():
     global DEPTH, TARGET, T_A, ROUTE_B_HOLD, MAX_ROUNDS, NOTIONAL, EXPECTED_IPS, REPRICE_THRESH
-    global _MAIN_LOOP
     global LEVERAGE, FEE_MAKER, FEE_TAKER, FREEZE_PULL_MARGIN, STOP_LOSS
     global SPIKE_PCT, SPIKE_MIN_SYMBOLS, SPIKE_WINDOW, SPIKE_COOLDOWN
     global args, GROUP_A, GROUP_B, TP_PCT, ROUTE_B_MODE, CMP_MODE
@@ -2539,8 +2244,7 @@ async def main():
     global REB_ANCHOR, REB_PCT, ROUTE_BRANCH, BRANCH_TR, BRANCH_CUT, BRANCH_HOLD
     global INSTANCE, RESIDENT_DEPTH
     global SL_MERGE
-    global ANCHOR_SEC
-    _MAIN_LOOP = asyncio.get_event_loop()
+    global ANCHOR_SEC, ANCHOR_JUMP_GATE
     ap = argparse.ArgumentParser()
     ap.add_argument("--symbols-file", default=None, help="币种清单json(默认 top58)")
     ap.add_argument("--symbols", default=None, help="逗号分隔覆盖(小样测试用)")
@@ -2557,6 +2261,7 @@ async def main():
     ap.add_argument("--max-rounds", type=int, default=0, help="跑N轮停(0=无限)")
     ap.add_argument("--reprice", type=float, default=0.02, help="重挂阈值(默认0.02=2%%)：价格相对上次挂单价偏移>=此值才撤旧挂新，否则保留原单不撤(降撤挂比)")
     ap.add_argument("--anchor-sec", type=float, default=60, help="秒级锚价: 锚价刷新周期(秒)=接针窗口。默认60(分钟级,旧行为); 1=只接1秒内真乌龙,阴跌不接")
+    ap.add_argument("--anchor-jump-gate", type=float, default=0.0, help="锚价跳变闸门(默认0=关闭)。>0时单次刷新价格跳变超过该比例则不更新锚价,防针尖污染(建议0.08)")
     ap.add_argument("--pull-margin", type=float, default=0.05,
                     help="冷却期爬单守护(默认0.05=5%%)：冷却/-4400期间旧单距真实价<此值强制撤，防缓涨缓跌爬进死单")
     ap.add_argument("--stop", type=float, default=0.10,
@@ -2564,11 +2269,11 @@ async def main():
     ap.add_argument("--no-sl-merge", action="store_true",
                     help="关闭同向止损合并(回滚到旧行为：每腿各挂一张全平单，第二张会被币安-4130拒绝)")
     ap.add_argument("--no-lev", action="store_true", help="跳过设置杠杆")
-    ap.add_argument("--lev", type=int, default=5,
-                    help="目标杠杆(默认5, 子账户上限5x, 2026-09-22定)"
+    ap.add_argument("--lev", type=int, default=2,
+                    help="目标杠杆(默认2，接飞刀必须低杠杆：插针会超调，高杠杆在回弹前就被强平)"
                          "；设 0 = 用交易所最高杠杆(不推荐)")
-    ap.add_argument("--fee-maker", type=float, default=0.0002, help="maker 费率(默认0.02%%)")
-    ap.add_argument("--fee-taker", type=float, default=0.0005, help="taker 费率(默认0.05%%)")
+    ap.add_argument("--fee-maker", type=float, default=0.001, help="maker 费率(默认0.1%%,现货)")
+    ap.add_argument("--fee-taker", type=float, default=0.001, help="taker 费率(默认0.1%%,现货)")
     ap.add_argument("--spike-pct", type=float, default=0.05, help="熔断：单币插针幅度(默认5%%)")
     ap.add_argument("--spike-syms", type=int, default=40, help="熔断：窗口内标的数阈值(默认40, 357币宇宙调高避免误熔断)")
     ap.add_argument("--spike-window", type=float, default=300.0, help="熔断：统计窗口秒(默认300)")
@@ -2601,7 +2306,7 @@ async def main():
     # 锁文件按模式+实例分开: react/resident/实验多进程并行, 互不排斥(名单零重叠, 同币冲突不存在)
     lock_suf = f"_{INSTANCE}" if INSTANCE else ""
     LOCK_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             f"ambush_basket_{MODE}{lock_suf}.lock")
+                             f"ambush_spot_paper_{MODE}{lock_suf}.lock")
 
     # 单例锁：已有活实例则拒绝启动，避免双实例重复挂单
     try:
@@ -2632,6 +2337,7 @@ async def main():
     MAX_ROUNDS, NOTIONAL = args.max_rounds, args.notional
     REPRICE_THRESH = args.reprice
     ANCHOR_SEC = max(1, int(args.anchor_sec))
+    ANCHOR_JUMP_GATE = float(args.anchor_jump_gate)
     FREEZE_PULL_MARGIN = args.pull_margin
     STOP_LOSS = args.stop
     SL_MERGE = not args.no_sl_merge
@@ -2665,6 +2371,7 @@ async def main():
     GROUP_B = [s for s in GROUP_B if s in symbols and s not in GROUP_A]
 
     log.info("=" * 64)
+    log.info("⚠️ 现货纸面模式(PAPER) — 虚拟成交，不真实下单 ⚠️")
     bmode = (f"挂{TP_PCT:.0%}TP/{STOP_LOSS:.0%}SL留仓" if ROUTE_B_MODE == "wait"
              else f"{ROUTE_B_HOLD}s强平")
     if CMP_MODE:
@@ -2681,7 +2388,9 @@ async def main():
         log.info(f"乌龙指埋伏篮子 | {len(symbols)}币 每侧{NOTIONAL}U ±{DEPTH:.0%} "
                  f"A:回归O∓{TARGET:.0%}({T_A}s) B:{bmode}")
     log.info(f"重挂阈值 REPRICE_THRESH={REPRICE_THRESH:.0%}（价格偏移>=此值才撤旧挂新，否则保留原单降撤挂比）")
-    log.info(f"锚价刷新周期 ANCHOR_SEC={ANCHOR_SEC}s（=接针窗口：60=分钟级旧行为；1=秒级,只接1秒内真乌龙）")
+    log.info(f"锚价刷新周期 ANCHOR_SEC={ANCHOR_SEC}s（=接针窗口：60=分钟级旧行为；1=秒级,只接1秒内真乌龙）"
+             f" | 跳变闸门 ANCHOR_JUMP_GATE={ANCHOR_JUMP_GATE:.0%}"
+             f"{'(关闭)' if ANCHOR_JUMP_GATE <= 0 else '(超此跳变不更新锚价,防针尖污染)'}")
     log.info(f"补丁1 WS断流→REST刷锚价 | 补丁2 冷却期旧单距真实价<{FREEZE_PULL_MARGIN:.0%}强制撤(防爬单)")
     log.info(f"止损补丁：成交即挂交易所端STOP_MARKET 触发价=成交价×(1±{STOP_LOSS:.0%})，判定在币安服务器(断网也生效)"
              if STOP_LOSS > 0 else "止损已关闭(--stop 0)：仅靠路线B硬平，失控拉盘风险自担")
@@ -2717,10 +2426,15 @@ async def main():
         await reset_client()
         await asyncio.sleep(5)
     if not symbols_loaded:
-        log.critical("[规格✗] 连续10次拉不到交易规格 → 退出(检查Clash代理后手动重启)")
+        log.critical("[规格✗] 连续10次拉不到交易规格 → 退出")
         release_lock()
         return
-    symbols = symbols_loaded
+    # 现货过滤：只保留在现货交易所存在的币
+    orig_count = len(symbols_loaded)
+    spot_symbols = set(symbols_loaded)  # load_filters already filtered to TRADING status
+    symbols = [s for s in symbols if s in spot_symbols]
+    removed = [s for s in symbols_loaded if s not in spot_symbols] +               [s for s in symbols if s not in spot_symbols]
+    log.info(f"[现货过滤] {orig_count}个合约币 → {len(symbols)}个现货可用 | 排除: {len(set(symbols) - spot_symbols)}个")
     RUN_SYMBOLS[:] = symbols
     log.info(f"[规格] 就绪 {len(symbols)}/{len(symbols)} | 样例: "
              f"{symbols[0]} tick={FILTERS[symbols[0]]['tick']} minNotional={FILTERS[symbols[0]]['minNotional']}")
@@ -2745,26 +2459,8 @@ async def main():
     except RuntimeError:
         pass
 
-    # 出口 IP 自检（IP 守卫的启动闸门）
-    ip0 = await asyncio.to_thread(exit_ip)
-    log.info(f"[IP] 当前 Clash 出口 IP = {ip0}")
-    if EXPECTED_IPS:
-        if ip0 is None:
-            # 探测站全挂：问币安，不猜
-            ok, why = await asyncio.to_thread(binance_ip_ok)
-            if ok:
-                log.info(f"[IP守卫✓] 出口IP探测失败，但 {why} → 允许交易")
-            else:
-                log.warning(f"[IP守卫⚠] 出口IP探测失败且 {why} → 先启动，"
-                            f"每轮守卫会拦住挂单，待出口回到白名单自动续挂")
-        elif ip0 not in EXPECTED_IPS:
-            log.warning(f"[IP守卫⚠] 启动出口 {ip0} 不在白名单 {sorted(EXPECTED_IPS)} → 先启动，"
-                        f"每轮守卫会拦住挂单，待 IP 回到白名单自动续挂（建议把 {ip0} 加入币安白名单）")
-            if wecom_notify is not None:
-                wecom_notify.send_async(f"⚠️ ambush_{MODE} 启动即在坏IP! 出口={ip0} 不在白名单{sorted(EXPECTED_IPS)}\n"
-                                        f"→ 挂单被锁, 陈旧限价单有被漂移价成交风险。请尽快把该IP加白名单或切Clash节点。")
-        else:
-            log.info(f"[IP守卫✓] 出口在白名单内，允许交易")
+    # 现货纸面模式：不需要IP守卫（直连api.binance.com，无需白名单）
+    log.info("[纸面模式] 现货直连api.binance.com，无需IP白名单")
 
     # WS 行情：357 币拆成多连接，每连接≤WS_CHUNK 个 bookTicker（单连接过多会 keepalive 超时）
     WS_CHUNK = 50
@@ -2787,80 +2483,43 @@ async def main():
     # 时钟偏移（【修复】原无异常保护：代理抖动时这里抛异常会让整个 bot 启动即崩）
     global OFF
     try:
-        r = client_sync().get(f"https://{_API_IP}/api/v3/time",
-                         headers={"Host": _API_HOST}, timeout=10)
+        r = client_sync().get(f"{PAPI}/api/v3/time", timeout=10)
         OFF = int(r.json()["serverTime"]) - int(time.time() * 1000)
         log.info(f"时钟 offset={OFF}ms")
     except Exception as e:
         OFF = 0
         log.warning(f"[时钟] 校准失败({type(e).__name__}) → offset 置 0 继续启动")
 
-    # 启动检测：一次拉取全部 U 本位持仓，找出非空仓的币 → 屏蔽触发（非本策略开的，不接管不清仓）
-    # 357 币规模下单符号循环 357 次会被限频，改一次全量拉取（无 symbol 参数即返回全部仓位）。
-    try:
-        c, p = await signed_request( "GET", "/fapi/v2/positionRisk")
-        if c == 200 and isinstance(p, list):
-            _held_msgs = []
-            for x in p:
-                amt = float(x.get("positionAmt", 0) or 0)
-                if amt != 0:
-                    s = x["symbol"]
-                    STARTUP_HELD.add(s)
-                    pos_side = x.get('positionSide', '?')
-                    entry_px = float(x.get('entryPrice', 0) or 0)
-                    mark_px = float(x.get('markPrice', 0) or 0)
-                    upnl = float(x.get('unRealizedProfit', 0) or 0)
-                    log.warning(f"[告警] {s} 已有持仓 ({pos_side}, {amt}) "
-                                f"（非本策略开的 → 屏蔽触发, 保留原仓由交易所管理）")
-                    _held_msgs.append(
-                        f"  {s} {pos_side} qty={amt}\n"
-                        f"    入场价={entry_px:.8g} 标记价={mark_px:.8g}\n"
-                        f"    浮盈亏={upnl:+.4f} USDT")
-            if _held_msgs and wecom_notify:
-                wecom_notify.send_async(
-                    f"⚠️检测到遗留持仓（非本策略开）\n"
-                    f"请判断是否手动平仓：\n\n" + "\n".join(_held_msgs)
-                )
-    except Exception as e:
-        log.warning(f"[启动检测] 拉取全部持仓失败: {e}（不屏蔽, 后续触发自行处理）")
+    # 纸面模式：无真实持仓需要检测
+    log.info("[纸面模式] 无真实持仓需要检测")
 
     # 杠杆改为"触发时惰性设置"（ensure_leverage）：357 币启动时批量设杠杆=714 次签名请求会卡数分钟且易限频。
     # 仅在实际触发交易的币上设一次最高杠杆（lev_set 缓存去重），启动不再阻塞。
     if args.no_lev:
         log.info("[杠杆] --no-lev：跳过杠杆设置（含触发时）")
 
-    tasks.append(asyncio.create_task(_supervised(ws_user_loop, "WS用户流")))
-    tasks.append(asyncio.create_task(_supervised(keep_listen_key, "listenKey保活")))
-    tasks.append(asyncio.create_task(_supervised(fallback_poll, "REST兜底轮询")))
+    # 纸面模式：无WS用户流、无listenKey、无REST兜底（全部本地模拟）
     cyc = asyncio.create_task(_supervised(minute_cycle, "分钟周期", symbols, NOTIONAL))
 
     async def _lev_presets():
-        """【并发版】启动后后台并发预置杠杆(10 worker, ~30s铺完767币)。
-        权重账：767币x2请求(查分层+设杠杆)=1534权重 < 2400/min 安全线。
-        保留 lev_set 缓存和触发时 ensure_leverage 现场补设双保险。
-        遇限频(-1003/429)自动降速(worker内重试等待)。"""
+        """【新增】启动后后台分批预置杠杆(每6s一币)：79币≈8分钟铺完。
+        目的：触发时 ensure_leverage 大概率已缓存→省一次签名REST(~150ms)。
+        8币时代是启动时同步批量设(16请求秒级)；357/79币同步设会卡启动数分钟，
+        故改后台铺。触发时若未铺到，ensure_leverage 仍会现场补设(双保险)。"""
         await asyncio.sleep(10)   # 等启动收尾
         n0 = len(lev_set)
-        todo = [s for s in symbols if s not in lev_set]
-        if not todo:
-            return
-        sem = asyncio.Semaphore(10)   # 最多10个并发
-        async def _worker(s):
-            async with sem:
-                for attempt in range(3):
-                    try:
-                        await ensure_leverage(s)
-                        if s in lev_set:  # 成功则不再重试
-                            return
-                    except Exception:
-                        pass
-                    if shutdown.is_set():
-                        return
-                    await asyncio.sleep(1.0 * (attempt + 1))   # 限频/失败退避
-        await asyncio.gather(*[_worker(s) for s in todo])
+        for s in symbols:
+            if shutdown.is_set():
+                return
+            if s not in lev_set:
+                try:
+                    await ensure_leverage(s)
+                except Exception:
+                    pass
+                await asyncio.sleep(6)
         log.info(f"[杠杆预置] 后台铺完: {len(lev_set)-n0} 币新增 (累计{len(lev_set)})")
 
-    tasks.append(asyncio.create_task(_supervised(_lev_presets, "杠杆预置")))
+    # 纸面模式：无杠杆预置
     tasks.append(asyncio.create_task(_supervised(clock_sync_loop, "时钟重校准")))
     if MODE == "resident":
         tasks.append(asyncio.create_task(_supervised(resident_loop, "常驻条件单循环")))
