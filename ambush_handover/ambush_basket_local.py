@@ -308,7 +308,7 @@ tp_limits = {}        # (sym, pos_side) -> orderId  在册的止盈限价单
 anchors = {}          # symbol -> 锚价O（实时盘口更新，用于平仓判断）
 price_hist = {}       # symbol -> deque([(ts_ms, price), ...]) 最近300ms价格历史，触发判断用100ms窗口锚价
 _MAIN_LOOP = None    # 主事件循环引用，供子线程提交on_fill用
-PRICE_HIST_MS = 300   # 保留最近300ms，取100ms前的价格作触发锚价
+PRICE_HIST_MS = 500   # 保留最近500ms，取400ms前的价格作触发锚价
 dip_low = {}          # symbol -> 近期 WS 最低中间价（B组/CMP 多单限价入场价）
 peak_high = {}        # symbol -> 近期 WS 最高中间价（空单限价卖空入场价，对称 dip_low）
 
@@ -658,7 +658,7 @@ async def _ws_instant_check(sym: str, px: float, src: str):
         anc_trig = None
         if _hist:
             for _hts, _hpx in _hist:
-                if _now_ms - _hts >= 80:
+                if _now_ms - _hts >= 400:
                     anc_trig = _hpx
         if not anc_trig:
             anc_trig = anc  # 历史不够则回退到实时锚价
@@ -758,7 +758,7 @@ async def ws_book_loop(symbols):
                             # 取100ms前的价格：找最靠近(_ts_bt - 100ms)的历史价格
                             _anc_bt = None
                             for _hts, _hpx in _hist_trig:
-                                if _ts_bt - _hts >= 80:  # >=80ms前的价格
+                                if _ts_bt - _hts >= 400:  # >=400ms前的价格
                                     _anc_bt = _hpx
                             if _anc_bt and _anc_bt > 0:
                                 _dev_bt = abs(_mid_bt / _anc_bt - 1)
@@ -818,7 +818,7 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
                     _anc_at_diag = None
                     if _hist_at_diag:
                         for _hts, _hpx in _hist_at_diag:
-                            if _ts_at_ms - _hts >= 80:
+                            if _ts_at_ms - _hts >= 400:
                                 _anc_at_diag = _hpx
                     if _anc_at_diag:
                         _dev_at_diag = abs(_px_at / _anc_at_diag - 1)
@@ -835,7 +835,7 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
                         _anc_at = None
                         if _hist_at:
                             for _hts, _hpx in _hist_at:
-                                if _ts_at_ms - _hts >= 80:
+                                if _ts_at_ms - _hts >= 400:
                                     _anc_at = _hpx
                         if not _anc_at:
                             _anc_at = anchors.get(_sym_at)  # 历史不够则回退实时锚价
@@ -2335,7 +2335,7 @@ async def reactive_entry_loop():
             anc_trig = None
             if _hist_mc:
                 for _hts, _hpx in _hist_mc:
-                    if _now_mc_ms - _hts >= 80:
+                    if _now_mc_ms - _hts >= 400:
                         anc_trig = _hpx
             if not anc_trig:
                 anc_trig = anc  # 历史不够则回退实时锚价
