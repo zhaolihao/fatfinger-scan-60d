@@ -2232,18 +2232,9 @@ async def _fire_cmp_m(sym, side, p, px):
         else:
             log.info(f"[CMP-M✓{tag}] {sym} tid={tid} 立即市价开火(10%大针无确认) → "
                      f"市价{'买' if side == 'LONG' else '卖空'} x{qty} @≈{px:.8g}")
-        # 【提速·方案A】市价单后立即查询真实成交价，然后挂TP/SL
-        # 币安合约市价单几乎100%成交，立即查询可获取真实avgPrice（消除滑点误差）
-        # 总延迟：33ms(下单) + 33ms(查询) = 66ms，仍比之前的1.898秒快30倍
-        c2, r2 = await signed_request(
-            "GET", "/fapi/v1/order",
-            {"symbol": sym, "orderId": oid})
-        if c2 == 200 and r2.get("status") == "FILLED" and float(r2.get("avgPrice") or 0) > 0:
-            ap_m = float(r2["avgPrice"])  # 真实成交价
-            log.info(f"[CMP-M成交✓{tag}] {sym} 查询确认 @{ap_m} → 立即挂TP/SL(66ms)")
-        else:
-            ap_m = float(r.get("avgPrice") or px)  # 回退
-            log.info(f"[CMP-M成交✓{tag}] {sym} 查询未FILLED，回退 @{ap_m} → 立即挂TP/SL")
+        # 不轮询FILLED状态，直接用触发价作为成交价
+        ap_m = px  # 用触发价作为成交价
+        log.info(f"[CMP-M成交✓{tag}] {sym} 推测成交 @{ap_m:.8g} → 立即挂TP/SL")
         spawn(on_fill(oid, ap_m, qty, sym))
         ev = cmp_events.get(tid)
         if ev is not None:
