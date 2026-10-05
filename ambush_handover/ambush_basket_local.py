@@ -779,8 +779,8 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
     """订阅一批 symbol 的 aggTrade（逐笔成交），更新 trade_prices。
     与 ws_book_loop 并行运行，提供逐笔成交价数据源。
     消息量比 bookTicker 大（热门币每秒几十条），但只更新字典不做计算，开销极小。"""
-    streams = "/".join(f"{s.lower()}@aggTrade" for s in symbols)
-    uri = f"{FSTREAM_WS}/stream?streams={streams}"  # 不quote()，@保持原样，否则Binance WS不识别
+    streams = "/".join(f"{s.lower()}@trade" for s in symbols)  # 用@trade替代@aggTrade（fstream的aggTrade流被阻断）
+    uri = f"{FSTREAM_WS}/stream?streams={quote(streams, safe='')}"
     while not shutdown.is_set():
         try:
             async with websockets.connect(uri, proxy=PROXY or None, ping_interval=20,
@@ -796,7 +796,7 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
                     _RAW_CNT[0] += 1
                     if _RAW_CNT[0] % 10000 == 0:
                         log.info(f"[AT原始] 第{_RAW_CNT[0]}条 e={d.get('e','?')} keys={list(d.keys())[:5]}")
-                    if not isinstance(d, dict) or d.get("e") != "aggTrade":
+                    if not isinstance(d, dict) or d.get("e") != "trade":
                         continue
                     # P3: aggTrade数据校验 — price<=0 时丢弃
                     _px_at = float(d["p"])
@@ -835,7 +835,6 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
                                 log.warning(f"[AT诊断] {_sym_at} 偏离{_dev_at_diag*100:.1f}%但不在RUN_SYMBOLS！RUN_SYMBOLS长度={len(RUN_SYMBOLS)}")
                             else:
                                 log.info(f"[AT诊断] {_sym_at} 偏离{_dev_at_diag*100:.1f}% 在RUN_SYMBOLS={_in_run} CMP={_cmp_ok}")
-                        log.warning(f"[AT诊断] {_sym_at} 不在RUN_SYMBOLS里！RUN_SYMBOLS长度={len(RUN_SYMBOLS)}")
                     # 【aggTrade内联入场·直接下单】
                     if _in_run and _cmp_ok:
                         # 取100ms前的价格作触发锚价
@@ -846,7 +845,7 @@ async def ws_aggtrade_loop(symbols, chunk_idx):
                                 if _ts_at_ms - _hts >= 80:
                                     _anc_at = _hpx
                         if not _anc_at:
-                            _anc_at = anchors.get(_sym_at)  # 历史不够则回退实时锚价
+                            continue  # 没有80ms前的锚价，跳过本次触发判断
                         if _anc_at and _anc_at > 0 and time.time() >= halt_until \
                                 and _sym_at not in STARTUP_HELD:
                             _dev_at = abs(_px_at / _anc_at - 1)
@@ -2188,21 +2187,10 @@ def sync_fire_cmp_m(sym, side, p, px):
                        "depth": p.get("depth")}
         log.info(f"[CMP-M✓{tag}] {sym} tid={tid} 线程直发(0阻塞) → "
                  f"市价{'买' if side == 'LONG' else '卖空'} x{qty} @≈{px:.8g}")
-        # 同步轮询GET确认真实成交价（最多3次，每次间隔50ms）
-        import time as _time
-        ap_m = float(r.get("avgPrice") or 0) or px  # 先用回包估价作默认
-        eq   = float(r.get("executedQty") or qty)
-        for _i in range(3):
-            _time.sleep(0.01)
-            c2, r2 = sync_signed_request("GET", "/fapi/v1/order",
-                                         {"symbol": sym, "orderId": oid})
-            if c2 == 200 and r2.get("status") == "FILLED" and float(r2.get("avgPrice") or 0) > 0:
-                ap_m = float(r2["avgPrice"])
-                eq   = float(r2.get("executedQty") or qty)
-                log.info(f"[CMP-M成交✓{tag}] {sym} 轮询第{_i+1}次确认 @{ap_m} → 立即挂TP/SL({(_i+1)*50}ms)")
-                break
-        else:
-            log.info(f"[CMP-M成交✓{tag}] {sym} 轮询未FILLED，回退回包 @{ap_m} → 立即挂TP/SL")
+        # 不轮询FILLED状态，直接用触发价作为成交价
+        ap_m = px  # 用触发价作为成交价
+        eq = qty   # 用计算的数量
+        log.info(f"[CMP-M成交✓{tag}] {sym} 推测成交 @{ap_m:.8g} x{eq} → 立即挂TP/SL")
         # 更新orders里的真实成交数量
         orders[oid]["qty"] = eq
         ev = cmp_events.get(tid)
