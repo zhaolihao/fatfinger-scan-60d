@@ -1,0 +1,5 @@
+FH META 字段: ['period', 'ts', 'sec', 'start', 'end', 'conditionId', 'closed', 'resolved', 'outcomes', 'outcomePrices', 'winner', 'question']
+样本: {"period": "4h", "ts": 1789113600, "sec": 14400, "start": 1789113600, "end": 1789128000, "conditionId": "0x572860e97dff391640dbf004d8123ba5d9f269642273db45b92fbdf293be047b", "closed": true, "resolved": "resolved", "outcomes": ["Up", "Down"], "outcomePrices": ["0", "1"], "winner": "Down", "question": "Bitcoin Up or Down - September 11, 4:00AM-8:00AM ET"}
+
+已收盘 4h 市场数=180
+最后 Up 价分布: {'<0.01': 40, '>=0.99': 90, '0.01~0.1': 33, '0.9~0.99': 5, '0.1~0.9(中间态)': 12}

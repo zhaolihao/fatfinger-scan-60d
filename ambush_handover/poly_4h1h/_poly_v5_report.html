@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4h×1h v5：两条修正 + 扩展到第2/3小时的结果</title>
+<style>
+:root{--bg:#f7f8fa;--card:#fff;--ink:#1a1d21;--muted:#6b7280;--line:#e3e6ea;
+--up:#d9342b;--down:#0f9960;--accent:#2563eb;--warn:#b45309;--warnbg:#fffbeb;--goodbg:#f0fdf4}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+line-height:1.7;padding:32px 20px}
+.wrap{max-width:980px;margin:0 auto}
+h1{font-size:26px;margin:0 0 6px}
+.sub{color:var(--muted);font-size:14px;margin-bottom:26px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-bottom:20px}
+h2{font-size:19px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+h3{font-size:16px;margin:20px 0 10px;color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{background:#f2f4f7;font-weight:600;font-size:13px;color:#374151}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.pos{color:var(--up);font-weight:600}
+.neg{color:var(--down);font-weight:600}
+.muted{color:var(--muted)}
+.hl{background:#fffbeb}
+.hl2{background:#f0fdf4}
+.box{background:#eef4ff;border-left:4px solid var(--accent);padding:14px 18px;border-radius:8px;font-size:15px}
+.warnbox{background:var(--warnbg);border:1px solid #fcd34d;border-radius:10px;padding:18px 20px;margin:16px 0}
+.warnbox h2{color:var(--warn);border-bottom-color:#fcd34d}
+.goodbox{background:var(--goodbg);border:1px solid #86efac;border-radius:10px;padding:18px 20px;margin:16px 0}
+.goodbox h2{color:#15803d;border-bottom-color:#86efac}
+code{background:#f2f4f7;padding:2px 6px;border-radius:4px;font-size:13px;font-family:Consolas,Monaco,monospace}
+ul{padding-left:20px}li{margin-bottom:6px}
+.foot{color:var(--muted);font-size:13px;text-align:center;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>你的两条修正已执行 —— 但第 2 条得出了反直觉结论</h1>
+<div class="sub">4h×1h 嵌套策略 · 30 天真实数据（9/10–10/9）· 每侧 1 美元 · 真实二元结算 · 2026-10-10</div>
+
+<!-- 修正1 -->
+<div class="card">
+<h2>① 修正「5 元 → 5 份」：已改，每侧按 1 美元下注</h2>
+<div class="box">
+<code>orderMinSize=5</code> 是 <b>5 份</b>不是 5 元 —— 价 0.01 时 5 份才 $0.05。本轮改为 <b>每侧 1 USD</b>（每局成本 $2），并加入「1 美元买不满 5 份就按 5 份补齐」的真实约束。
+</div>
+<h3>这条约束带来的实际影响</h3>
+<table>
+<tr><th>入场阈值</th><th class="n">每局实际成本</th><th class="n">被 5 份门槛强制加仓的次数</th><th class="n">ROI（只看第4小时）</th></tr>
+<tr><td>0.30</td><td class="n">$2.47</td><td class="n">97</td><td class="n pos">+8.44%</td></tr>
+<tr><td>0.25</td><td class="n">$2.17</td><td class="n">79</td><td class="n pos">+7.03%</td></tr>
+<tr class="hl2"><td><b>0.20</b></td><td class="n"><b>$2.01</b></td><td class="n"><b>41</b></td><td class="n pos"><b>+22.77%</b></td></tr>
+<tr><td>0.15 及以下</td><td class="n">$2.00</td><td class="n">0</td><td class="n pos">+13.86%</td></tr>
+</table>
+<p class="muted" style="font-size:13px"><b>结论：THR=0.20 是"5 份门槛不吃人"的上限，也正好是最优点。</b>阈值再高（0.25/0.30），1 美元买不够 5 份，被迫加仓，ROI 被压掉一半以上。</p>
+</div>
+
+<!-- 修正2 数据 -->
+<div class="card">
+<h2>② 修正「不只最后一小时」：数据已补全</h2>
+<p>补抓每个 4h 窗口的第 1/2/3 个小时的 1h 市场 → 共 <b>717 个 1h 子市场、537,784 笔成交</b>（原只有 180 个）。</p>
+<p class="muted" style="font-size:13px">代码已验证：只用第 4 小时时，THR≤0.20 的结果与上一版<b>逐位吻合</b>（+22.77 vs +22.79、+13.86 vs +13.86、−4.53 vs −4.53），说明差异确实来自"早入场"，不是 bug。</p>
+</div>
+
+<!-- 核心发现 -->
+<div class="card">
+<h2>③ 核心发现：加第 2/3 小时反而大幅变差</h2>
+
+<h3>逐小时拆解（THR=0.20，每个 4h 窗口只入最早一次）</h3>
+<table>
+<tr><th>小时</th><th class="n">触发次数</th><th class="n">每局盈亏</th><th class="n">ROI</th><th class="n">t 值</th><th class="n">胜率</th><th class="n">4h腿均价</th><th class="n">保本触发率</th></tr>
+<tr><td><b>第1小时</b></td><td class="n"><b>0</b></td><td class="n muted">—</td><td class="n muted">—</td><td class="n muted">—</td><td class="n muted">—</td><td class="n muted">—</td><td class="n muted">—</td></tr>
+<tr><td>第2小时</td><td class="n">12</td><td class="n pos">+$0.094</td><td class="n pos">+4.67%</td><td class="n">+0.22</td><td class="n">9/12</td><td class="n">0.140</td><td class="n">75.0%</td></tr>
+<tr class="hl"><td><b>第3小时</b></td><td class="n">25</td><td class="n neg">−$0.684</td><td class="n neg"><b>−34.10%</b></td><td class="n neg"><b>−2.69</b></td><td class="n">12/25</td><td class="n">0.128</td><td class="n"><b>56.0%</b></td></tr>
+<tr class="hl2"><td><b>第4小时</b></td><td class="n">61</td><td class="n pos">+$0.475</td><td class="n pos"><b>+23.71%</b></td><td class="n pos">+1.69</td><td class="n">45/61</td><td class="n">0.056</td><td class="n">75.4%</td></tr>
+</table>
+
+<h3>THR=0.15 时更极端</h3>
+<table>
+<tr><th>小时</th><th class="n">触发次数</th><th class="n">ROI</th><th class="n">t 值</th><th class="n">保本触发率</th></tr>
+<tr><td>第2小时</td><td class="n">9</td><td class="n pos">+9.47%</td><td class="n">+0.57</td><td class="n">88.9%</td></tr>
+<tr class="hl"><td><b>第3小时</b></td><td class="n">14</td><td class="n neg"><b>−69.14%</b></td><td class="n neg"><b>−5.10</b></td><td class="n"><b>28.6%</b></td></tr>
+<tr><td>第4小时</td><td class="n">59</td><td class="n pos">+5.10%</td><td class="n">+0.31</td><td class="n">59.3%</td></tr>
+</table>
+
+<div class="warnbox">
+<h2>为什么早入场会亏 —— 机制找到了</h2>
+<p><b>关键指标是「保本触发率」</b>：即"任一侧市值翻倍、把本金收回来"这件事发生的比例。</p>
+<ul>
+<li>第 4 小时：<b>75.4%</b> 能触发保本 → 赚</li>
+<li>第 3 小时：<b>56.0%</b>（THR=0.15 时只有 28.6%）→ 大幅亏</li>
+</ul>
+<p>原因在<b>入场价格</b>：越接近 4h 收盘，4h 的冷门侧价格越极端（第4小时均价 <b>0.056</b>，第3小时 0.128）。价格越低 → 同样的 1 美元买到的份数越多 → <b>只要价格稍微动一点点就能翻倍</b>。早入场时价格没那么极端，翻倍需要的真实反转幅度大得多，很难发生。</p>
+<p><b>还有一层机会成本</b>：一旦在第2/3小时入场，就不会再等第4小时了。全 4 小时模式下第4小时只剩 <b>61</b> 次（原本 80 次）——<b>19 次最好的入场机会被早入场挤掉了</b>。</p>
+</div>
+
+<div class="goodbox">
+<h2>✅ 你的直觉被数据证实了一条</h2>
+<p>你说「<b>第1个小时一般不太可能，因为它是同向的</b>」——数据上第 1 小时在<b>所有阈值下触发次数都是 0</b>。完全正确。</p>
+<p>但第 2、3 小时确实会触发（你说得没错），<b>只是触发 ≠ 赚钱</b>：第 3 小时是显著亏损的陷阱。</p>
+</div>
+</div>
+
+<!-- 总对照 -->
+<div class="card">
+<h2>④ 总对照：全 4 小时 vs 只看第 4 小时</h2>
+<table>
+<tr><th>入场阈值</th><th class="n">全4小时 ROI</th><th class="n">t</th><th class="n">n</th><th class="n">只看第4小时 ROI</th><th class="n">t</th><th class="n">n</th></tr>
+<tr><td>0.30</td><td class="n pos">+0.01%</td><td class="n">+0.00</td><td class="n">134</td><td class="n pos">+8.44%</td><td class="n">+1.08</td><td class="n">98</td></tr>
+<tr><td>0.25</td><td class="n pos">+0.49%</td><td class="n">+0.06</td><td class="n">113</td><td class="n pos">+7.03%</td><td class="n">+0.68</td><td class="n">86</td></tr>
+<tr class="hl2"><td><b>0.20</b></td><td class="n pos">+6.63%</td><td class="n">+0.67</td><td class="n">98</td><td class="n pos"><b>+22.77%</b></td><td class="n pos"><b>+1.88</b></td><td class="n">80</td></tr>
+<tr><td>0.15</td><td class="n neg">−7.09%</td><td class="n neg">−0.57</td><td class="n">82</td><td class="n pos">+13.86%</td><td class="n">+0.83</td><td class="n">69</td></tr>
+<tr><td>0.10</td><td class="n neg">−9.37%</td><td class="n neg">−0.61</td><td class="n">66</td><td class="n pos">+3.63%</td><td class="n">+0.20</td><td class="n">57</td></tr>
+<tr><td>0.05</td><td class="n neg">−13.53%</td><td class="n neg">−1.08</td><td class="n">51</td><td class="n neg">−4.53%</td><td class="n neg">−0.29</td><td class="n">47</td></tr>
+<tr><td>0.02</td><td class="n pos">+19.14%</td><td class="n">+0.68</td><td class="n">28</td><td class="n pos">+12.62%</td><td class="n">+0.43</td><td class="n">26</td></tr>
+</table>
+<p class="muted" style="font-size:13px">另跑了「模式 B：每个满足条件的小时各入一次」，更差（THR=0.20 时 +4.30% / t=+0.48），不采用。</p>
+</div>
+
+<!-- 结论 -->
+<div class="card">
+<h2>⑤ 结论与现行推荐</h2>
+<div class="box">
+<b>维持"只用最后一小时"，不要加第 2/3 小时。</b><br>
+配置：THR=0.20 · 每侧 1 USD（每局 $2）· 价差 1% · 真实二元结算<br><br>
+<b>ROI +22.77%　t=+1.88　n=80　胜率 75%（60/80）</b><br>
+30 天累计：总投入 $160，总盈亏 <b>+$36.5</b>（平均每局 +$0.457）
+</div>
+<h3>仍需警惕</h3>
+<ul>
+<li><b>t=+1.88 仍未到显著线（2.0）</b>，正期望成立但不够硬。</li>
+<li>第 3 小时显著为负（t=−2.69 / −5.10）目前只有 30 天单一样本，建议换一段行情或 ETH 二次验证后再彻底否定它。</li>
+<li>未建模风险：极端价（如 $0.001）时 1 美元可买 1000 份，真要卖出时盘口深度未必吃得下，1% 价差假设偏乐观。</li>
+<li>费用按 Polymarket CLOB 撮合费 0% 建模。</li>
+</ul>
+<h3>下一步建议</h3>
+<ul>
+<li>确认是否采纳「只用第 4 小时 + THR=0.20 + 每侧 1 美元」为入场定稿。</li>
+<li>若采纳，接下来定<b>出场规则</b>（现在是"翻倍全卖"；可选卖一半锁利润、留一半博满额）。</li>
+<li>然后小资金（$100–200）实盘跑 1–2 周，重点验证真实滑点与极端价成交能力。</li>
+</ul>
+</div>
+
+<div class="foot">脚本：<code>_poly_fetch_1h_all4_30d.py</code>（补抓第1/2/3小时） · <code>_poly_4h1h_v5.py</code>（v5 回测，支持 HOURS/MODE/MIN_SIZE/MIN_SHARES）</div>
+
+</div>
+</body>
+</html>

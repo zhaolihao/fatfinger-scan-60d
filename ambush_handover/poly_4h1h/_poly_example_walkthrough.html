@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4h×1h 嵌套策略：执行机制真实例子还原 + 重大修正</title>
+<style>
+:root{
+  --bg:#f7f8fa; --card:#ffffff; --ink:#1a1d21; --muted:#6b7280; --line:#e3e6ea;
+  --up:#d9342b; --down:#0f9960; --accent:#2563eb; --warn:#b45309; --warnbg:#fffbeb;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+  line-height:1.7;padding:32px 20px}
+.wrap{max-width:940px;margin:0 auto}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:-.3px}
+.sub{color:var(--muted);font-size:14px;margin-bottom:26px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-bottom:20px}
+h2{font-size:19px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+h3{font-size:16px;margin:20px 0 10px;color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{background:#f2f4f7;font-weight:600;font-size:13px;color:#374151}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.pos{color:var(--up);font-weight:600}
+.neg{color:var(--down);font-weight:600}
+.muted{color:var(--muted)}
+.analogy{background:#eef4ff;border-left:4px solid var(--accent);padding:14px 18px;border-radius:8px;font-size:15px}
+.warnbox{background:var(--warnbg);border:1px solid #fcd34d;border-radius:10px;padding:18px 20px;margin:16px 0}
+.warnbox h2{color:var(--warn);border-bottom-color:#fcd34d}
+.step{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.stepn{flex:0 0 30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px}
+.stepb{flex:1}
+.stepb b{display:block;margin-bottom:2px}
+code{background:#f2f4f7;padding:2px 6px;border-radius:4px;font-size:13px;
+  font-family:Consolas,Monaco,monospace}
+pre{background:#1e2229;color:#e6e9ef;padding:16px 18px;border-radius:8px;overflow-x:auto;
+  font-size:13px;line-height:1.6;font-family:Consolas,Monaco,monospace}
+pre .cm{color:#8b95a3}
+.timeline{margin:16px 0}
+.tlrow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.tlrow:last-child{border-bottom:none}
+.tlt{flex:0 0 132px;font-weight:600;font-size:14px;color:var(--accent)}
+.tlb{flex:1;font-size:14px}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.b-buy{background:#fee2e2;color:#b91c1c}
+.b-sell{background:#d1fae5;color:#065f46}
+.b-zero{background:#f3f4f6;color:#4b5563}
+ul{padding-left:20px;margin:10px 0}
+li{margin-bottom:6px}
+.foot{color:var(--muted);font-size:13px;text-align:center;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>4h×1h 嵌套策略：执行机制真实例子还原</h1>
+<div class="sub">数据：Polymarket BTC Up/Down 30 天真实成交（9/10–10/9，180 对） · 每侧 5 美元 · 价差 1% · 2026-10-10</div>
+
+<!-- 1 比喻 -->
+<div class="card">
+<h2>① 一句话比喻：赛马场的两个投注窗口</h2>
+<div class="analogy">
+同一场赛马，场边开了<b>两个投注窗口</b>：一个赌「<b>整场 4 小时</b> BTC 涨不涨」，一个赌「<b>最后一小时</b>涨不涨」。<br><br>
+你专挑这样一个瞬间：<b>两个窗口的「冷门方向刚好相反</b>」——比如大窗口（4h）冷门是「涨」，小窗口（1h）冷门是「跌」。然后两边各押 5 块钱冷门票。<br><br>
+押完之后，只要<b>任意一边突然变热</b>（价格翻倍），你就把那一边<b>全部卖掉，把 10 块本金收回来</b>。剩下那一边就成了<b>白送的彩票</b>——到期中了是纯赚，没中也不亏（本金已收回）。
+</div>
+</div>
+
+<!-- 2 真实例子 -->
+<div class="card">
+<h2>② 真实例子：2026/09/12 12:00–16:00 ET 这一局</h2>
+
+<h3>两个市场</h3>
+<table>
+<tr><th>角色</th><th>市场</th><th>窗口（ET）</th><th>真实结果</th></tr>
+<tr><td>父周期（大窗口）</td><td><code>btc-updown-4h-1789228800</code></td><td>09/12 12:00 → 16:00</td><td><b>Down</b>（没涨）</td></tr>
+<tr><td>子周期（小窗口）</td><td><code>bitcoin-up-or-down-september-12-2026-3pm-et</code></td><td>09/12 15:00 → 16:00</td><td><b>Down</b></td></tr>
+</table>
+<p class="muted" style="font-size:13px">子周期就是父周期的<b>最后一个小时</b>——两个市场同一时刻在看同一段行情，但赌的时间长度不同。</p>
+
+<h3>逐步还原</h3>
+<div class="timeline">
+  <div class="tlrow">
+    <div class="tlt">15:56 ET</div>
+    <div class="tlb"><span class="badge b-buy">扫描</span> 系统在 1h 市场每一笔成交时刻做检查：
+      4h 市场 Up=<b>$0.001</b> / Down=$0.999 → 便宜侧是 <b>Up</b>；
+      1h 市场 Up=$0.83 / Down=<b>$0.17</b> → 便宜侧是 <b>Down</b>。<br>
+      方向相反 ✓　两侧都 &lt; 0.20 ✓　→ <b>触发入场</b></div>
+  </div>
+  <div class="tlrow">
+    <div class="tlt">15:56 ET</div>
+    <div class="tlb"><span class="badge b-buy">买入</span> 
+      4h 买 Up @$0.001 → <b>4950 份</b>；1h 买 Down @$0.17 → <b>29 份</b>。
+      共投入 <b>$10</b>（每侧 $5）</div>
+  </div>
+  <div class="tlrow">
+    <div class="tlt">15:57 ET</div>
+    <div class="tlb"><span class="badge b-sell">卖出</span> 
+      <b>1 分钟后</b>：1h 的 Down 从 $0.17 涨到 $0.38 → 29 份 × $0.38 = <b>$11.07</b> ≥ $10（翻倍）<br>
+      → 全卖（扣 1% 价差）<b>收回 $10.96</b>　← <b>本金 $10 已全部收回</b></div>
+  </div>
+  <div class="tlrow">
+    <div class="tlt">16:00 ET</div>
+    <div class="tlb"><span class="badge b-zero">到期</span> 
+      4h 到期，真实结果 = <b>Down</b> → 你手里 4950 份 Up <b>归零 $0</b><br>
+      （这 4950 份就是那张"白送的彩票"，没中）</div>
+  </div>
+</div>
+
+<table>
+<tr><th>结算</th><th class="num">金额</th></tr>
+<tr><td>收回（1h 卖出）</td><td class="num">$10.96</td></tr>
+<tr><td>收回（4h 到期，输了）</td><td class="num">$0.00</td></tr>
+<tr><td>成本</td><td class="num">−$10.00</td></tr>
+<tr><td><b>真实盈亏</b></td><td class="num pos">+$0.96（ROI +9.6%）</td></tr>
+</table>
+</div>
+
+<!-- 3 输局 -->
+<div class="card">
+<h2>③ 对照：一局真正亏钱的（09/11 04:00–08:00 ET）</h2>
+<div class="step"><div class="stepn">1</div><div class="stepb"><b>入场 07:57 ET</b>
+  4h 买 Up @$0.0449 → 110 份；1h 买 Down @$0.20 → 24.8 份。共投 $10。</div></div>
+<div class="step"><div class="stepn">2</div><div class="stepb"><b>两边都没翻倍</b>
+  一直到到期，没有任何一侧市值涨到 $10 → 一次保本卖出都没触发。</div></div>
+<div class="step"><div class="stepn">3</div><div class="stepb"><b>到期两边都输了</b>
+  4h 真实结果 Down（你买 Up，输）；1h 真实结果 Up（你买 Down，输）。
+  → 回收 $0，<span class="neg">亏 −$10</span>。</div></div>
+<p class="muted" style="font-size:13px">这就是双输：行情朝着"大家都看好的那一侧"一路走到底，你买的两张冷门票全废。</p>
+</div>
+
+<!-- 4 代码 -->
+<div class="card">
+<h2>④ 这套判断在代码里长什么样</h2>
+<p>把上面的"人话"翻译成机器的判断条件（已简化，去掉了性能细节）：</p>
+<pre><span class="cm"># 每个 1h 成交时刻，检查一次能不能入场</span>
+if 4h便宜侧 == "up"  and 1h便宜侧 == "dn":   <span class="cm"># 方向必须相反</span>
+    pass
+elif 4h便宜侧 == "dn" and 1h便宜侧 == "up":
+    pass
+else:
+    continue          <span class="cm"># 方向相同 → 跳过</span>
+
+if 4h价格 &gt;= 0.20 or 1h价格 &gt;= 0.20:        <span class="cm"># 两侧都必须够便宜（&lt;阈值）</span>
+    continue
+
+<span class="cm"># 入场：两边各买 5 美元</span>
+4h份数 = 5.0 / (4h价格 × 1.01)   <span class="cm"># 1.01 = 1% 价差</span>
+1h份数 = 5.0 / (1h价格 × 1.01)
+
+<span class="cm"># 出场：从入场那一刻往前扫描每一笔价格</span>
+if 份数 × 当前价 &gt;= 10.0:        <span class="cm"># 市值翻倍（收回全部本金）</span>
+    卖出价 = 当前价 × 0.99      <span class="cm"># 再扣 1% 价差</span>
+    全卖，这一侧结束
+
+<span class="cm"># 到期还没卖的：按真实结果结算</span>
+if 这一侧 == 真实赢家: 每一份付 $1
+else:                 每一份付 $0</pre>
+<p class="muted" style="font-size:13px">关键点：<b>完全没有用"未来信息"</b>——每一步只用当时已经成交过的价格，买入和卖出的判断都只看到当下。</p>
+</div>
+
+<!-- 5 修正 -->
+<div class="card">
+<div class="warnbox">
+<h2>⚠️ ⑤ 讲解过程中自查发现的重大建模错误（必须纠正）</h2>
+<p><b>错在哪：</b>「持有到到期结算」这一步，旧回测用的是<b>到期前最后一个市场价格</b>当卖出价，而 Polymarket 二元市场的真实结算是 <b>赢了 $1/份、输了 $0/份</b>。</p>
+<p><b>为什么后果严重：</b>买价越便宜，买的份数越多。像例子里 $0.001 买了 <b>4950 份</b>，输掉时旧模型却按 $0.001 结算，等于<b>把 $4.95 本金退回来了</b>——但真实世界里输了就是 $0。</p>
+<p><b>佐证：</b>180 个已收盘 4h 市场里，有 <b>50 个</b>最后价格不在 0 或 1 附近（33 个在 0.01–0.1，12 个还在 0.1–0.9 的中间态），说明"最后价"根本不能代表结算结果。</p>
+</div>
+
+<h3>修正后 vs 修正前（同一套入场逻辑，只换结算模型）</h3>
+<table>
+<tr><th>入场阈值 THR</th><th class="num">旧模型 ROI</th><th class="num">旧 t 值</th><th class="num">真实结算 ROI</th><th class="num">真实 t 值</th><th class="num">局数</th></tr>
+<tr><td>0.30</td><td class="num pos">+27.5%</td><td class="num">+3.38</td><td class="num pos">+14.2%</td><td class="num">+1.64</td><td class="num">98</td></tr>
+<tr><td>0.25</td><td class="num pos">+27.9%</td><td class="num">+2.68</td><td class="num pos">+9.9%</td><td class="num">+0.89</td><td class="num">86</td></tr>
+<tr style="background:#fffbeb"><td><b>0.20（主推）</b></td><td class="num pos">+44.3%</td><td class="num">+3.93</td><td class="num pos"><b>+22.8%</b></td><td class="num"><b>+1.87</b></td><td class="num">80</td></tr>
+<tr><td>0.15</td><td class="num pos">+44.1%</td><td class="num">+2.78</td><td class="num pos">+13.9%</td><td class="num">+0.83</td><td class="num">69</td></tr>
+<tr><td>0.10</td><td class="num pos">+42.1%</td><td class="num">+2.45</td><td class="num pos">+3.6%</td><td class="num">+0.20</td><td class="num">57</td></tr>
+<tr><td>0.05</td><td class="num pos">+36.4%</td><td class="num">+2.48</td><td class="num neg">−4.5%</td><td class="num neg">−0.29</td><td class="num">47</td></tr>
+<tr><td>0.02</td><td class="num pos">+63.3%</td><td class="num">+2.34</td><td class="num pos">+12.6%</td><td class="num">+0.43</td><td class="num">26</td></tr>
+</table>
+
+<div class="warnbox">
+<h2>⚠️ 另一个错误：我之前报的金额虚高 5 倍</h2>
+<p>脚本里 <code>mean_pnl</code> 已经是按每侧 5 美元算好的，但结尾又乘了一次 5，导致我之前说的 <b>「80 对期望 +1770 美元」是错的</b>。</p>
+<p><b>正确数字（THR=0.20，真实结算）：</b>每对期望 <b>+$2.28</b>（投 $10），80 对合计约 <b>+$182</b>（总投入 $800）。</p>
+</div>
+</div>
+
+<!-- 6 结论 -->
+<div class="card">
+<h2>⑥ 结论：修正后还剩下什么</h2>
+<ul>
+<li><b>正期望仍在，但强度大幅下降。</b>主推 THR=0.20：ROI <b>+22.8%</b>，胜率 61/80（76%），但 t 值只有 <b>+1.87 —— 已经不到统计显著线（2.0）</b>。之前说的"t=3.93 显著"是被结算 bug 抬上去的。</li>
+<li><b>越激进越先崩。</b>THR=0.05 修正后直接<b>转负（−4.5%）</b>。因为阈值越小越依赖"极低价格买彩票"，而结算修正正好把"买错了还能退回本金"的幻觉打掉。</li>
+<li><b>策略骨架是对的</b>：靠"任一腿翻倍就收回本金"把下行砍掉，另一腿零成本博高赔率——这个结构在真实结算下依然盈利，只是没之前那么夸张。</li>
+<li><b>还有一个没算进来的风险</b>：极端价（如 $0.001）会买到近 5000 份，真要卖出时盘口深度未必吃得下，1% 价差假设偏乐观。实盘小资金试才知真实滑点。</li>
+</ul>
+<h3>建议下一步</h3>
+<ul>
+<li><b>不要按之前"显著"的结论加大投入</b>，按修正后的 +22.8% ROI / t=1.87 重新评估。</li>
+<li>先用<b>小资金</b>（200–500 美元）实盘跑 1–2 周，重点验证：① 真实滑点是不是 1% 以内；② 极端价单子能不能真成交。</li>
+<li>同时补 ETH + 另一段行情（大跌/横盘）做二次稳健性确认，看 t 值能不能回到 2 以上。</li>
+</ul>
+</div>
+
+<div class="foot">脚本：<code>_poly_4h1h_v4.py</code>（修正结算） · <code>_poly_trace_example.py</code>（例子还原） · <code>_poly_check_settle.py</code>（结算核查）</div>
+
+</div>
+</body>
+</html>

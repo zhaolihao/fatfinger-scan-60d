@@ -1,0 +1,62 @@
+======================================================================
+4h x 1h 嵌套周期条件入场回测 v3（30 天数据 · 真实成本）
+成本假设：每侧 MIN_SIZE=5.0 USD，价差 SLIP=1.0%，每笔固定费 GAS=0.0
+4h 市场（含未收盘） 181 个
+1h 市场 180 个，成交 132892 笔
+跳过未收盘 4h 窗口 1 个；成功配对（已收盘） 180 对
+
+===== 阈值 x ref gap 扫描（30 天 · 真实成本） =====
+THR=0.30 GAP=0.00: n= 98  mean/pair(MIN_SIZE=1)=+2.7483  ROI%=+27.48  t=+3.38  win=75/98
+THR=0.30 GAP=0.10: n= 98  mean/pair(MIN_SIZE=1)=+2.7483  ROI%=+27.48  t=+3.38  win=75/98
+THR=0.30 GAP=0.15: n= 98  mean/pair(MIN_SIZE=1)=+2.7483  ROI%=+27.48  t=+3.38  win=75/98
+THR=0.30 GAP=0.20: n= 97  mean/pair(MIN_SIZE=1)=+3.1834  ROI%=+31.83  t=+3.52  win=75/97
+THR=0.30 GAP=0.25: n= 96  mean/pair(MIN_SIZE=1)=+2.6689  ROI%=+26.69  t=+3.01  win=72/96
+THR=0.30 GAP=0.30: n= 91  mean/pair(MIN_SIZE=1)=+2.8689  ROI%=+28.69  t=+3.12  win=68/91
+THR=0.30 GAP=0.35: n= 90  mean/pair(MIN_SIZE=1)=+2.8698  ROI%=+28.70  t=+3.07  win=65/90
+THR=0.25 GAP=0.00: n= 86  mean/pair(MIN_SIZE=1)=+2.7878  ROI%=+27.88  t=+2.68  win=61/86
+THR=0.25 GAP=0.10: n= 86  mean/pair(MIN_SIZE=1)=+2.7878  ROI%=+27.88  t=+2.68  win=61/86
+THR=0.25 GAP=0.15: n= 86  mean/pair(MIN_SIZE=1)=+2.7878  ROI%=+27.88  t=+2.68  win=61/86
+THR=0.25 GAP=0.20: n= 86  mean/pair(MIN_SIZE=1)=+2.7878  ROI%=+27.88  t=+2.68  win=61/86
+THR=0.25 GAP=0.25: n= 84  mean/pair(MIN_SIZE=1)=+2.8149  ROI%=+28.15  t=+2.64  win=59/84
+THR=0.25 GAP=0.30: n= 81  mean/pair(MIN_SIZE=1)=+2.8340  ROI%=+28.34  t=+2.58  win=57/81
+THR=0.25 GAP=0.35: n= 79  mean/pair(MIN_SIZE=1)=+3.0984  ROI%=+30.98  t=+2.78  win=55/79
+THR=0.20 GAP=0.00: n= 80  mean/pair(MIN_SIZE=1)=+4.4259  ROI%=+44.26  t=+3.93  win=61/80
+THR=0.20 GAP=0.10: n= 80  mean/pair(MIN_SIZE=1)=+4.4259  ROI%=+44.26  t=+3.93  win=61/80
+THR=0.20 GAP=0.15: n= 80  mean/pair(MIN_SIZE=1)=+4.4259  ROI%=+44.26  t=+3.93  win=61/80
+THR=0.20 GAP=0.20: n= 80  mean/pair(MIN_SIZE=1)=+4.4259  ROI%=+44.26  t=+3.93  win=61/80
+THR=0.20 GAP=0.25: n= 79  mean/pair(MIN_SIZE=1)=+4.4743  ROI%=+44.74  t=+3.93  win=60/79
+THR=0.20 GAP=0.30: n= 79  mean/pair(MIN_SIZE=1)=+4.4743  ROI%=+44.74  t=+3.93  win=60/79
+THR=0.20 GAP=0.35: n= 76  mean/pair(MIN_SIZE=1)=+4.5756  ROI%=+45.76  t=+3.87  win=56/76
+THR=0.15 GAP=0.00: n= 69  mean/pair(MIN_SIZE=1)=+4.4145  ROI%=+44.14  t=+2.78  win=40/69
+THR=0.15 GAP=0.10: n= 69  mean/pair(MIN_SIZE=1)=+4.4145  ROI%=+44.14  t=+2.78  win=40/69
+THR=0.15 GAP=0.15: n= 69  mean/pair(MIN_SIZE=1)=+4.4145  ROI%=+44.14  t=+2.78  win=40/69
+THR=0.15 GAP=0.20: n= 69  mean/pair(MIN_SIZE=1)=+4.4145  ROI%=+44.14  t=+2.78  win=40/69
+THR=0.15 GAP=0.25: n= 69  mean/pair(MIN_SIZE=1)=+4.4145  ROI%=+44.14  t=+2.78  win=40/69
+THR=0.15 GAP=0.30: n= 69  mean/pair(MIN_SIZE=1)=+4.4145  ROI%=+44.14  t=+2.78  win=40/69
+THR=0.15 GAP=0.35: n= 69  mean/pair(MIN_SIZE=1)=+4.4145  ROI%=+44.14  t=+2.78  win=40/69
+THR=0.10 GAP=0.00: n= 57  mean/pair(MIN_SIZE=1)=+4.2118  ROI%=+42.12  t=+2.45  win=29/57
+THR=0.10 GAP=0.10: n= 57  mean/pair(MIN_SIZE=1)=+4.2118  ROI%=+42.12  t=+2.45  win=29/57
+THR=0.10 GAP=0.15: n= 57  mean/pair(MIN_SIZE=1)=+4.2118  ROI%=+42.12  t=+2.45  win=29/57
+THR=0.10 GAP=0.20: n= 57  mean/pair(MIN_SIZE=1)=+4.2118  ROI%=+42.12  t=+2.45  win=29/57
+THR=0.10 GAP=0.25: n= 57  mean/pair(MIN_SIZE=1)=+4.2118  ROI%=+42.12  t=+2.45  win=29/57
+THR=0.10 GAP=0.30: n= 57  mean/pair(MIN_SIZE=1)=+4.2118  ROI%=+42.12  t=+2.45  win=29/57
+THR=0.10 GAP=0.35: n= 57  mean/pair(MIN_SIZE=1)=+4.2118  ROI%=+42.12  t=+2.45  win=29/57
+THR=0.05 GAP=0.00: n= 47  mean/pair(MIN_SIZE=1)=+3.6361  ROI%=+36.36  t=+2.48  win=28/47
+THR=0.05 GAP=0.10: n= 47  mean/pair(MIN_SIZE=1)=+3.6361  ROI%=+36.36  t=+2.48  win=28/47
+THR=0.05 GAP=0.15: n= 47  mean/pair(MIN_SIZE=1)=+3.6361  ROI%=+36.36  t=+2.48  win=28/47
+THR=0.05 GAP=0.20: n= 47  mean/pair(MIN_SIZE=1)=+3.6361  ROI%=+36.36  t=+2.48  win=28/47
+THR=0.05 GAP=0.25: n= 47  mean/pair(MIN_SIZE=1)=+3.6361  ROI%=+36.36  t=+2.48  win=28/47
+THR=0.05 GAP=0.30: n= 47  mean/pair(MIN_SIZE=1)=+3.6361  ROI%=+36.36  t=+2.48  win=28/47
+THR=0.05 GAP=0.35: n= 47  mean/pair(MIN_SIZE=1)=+3.6361  ROI%=+36.36  t=+2.48  win=28/47
+THR=0.02 GAP=0.00: n= 26  mean/pair(MIN_SIZE=1)=+6.3251  ROI%=+63.25  t=+2.34  win=16/26
+THR=0.02 GAP=0.10: n= 26  mean/pair(MIN_SIZE=1)=+6.3251  ROI%=+63.25  t=+2.34  win=16/26
+THR=0.02 GAP=0.15: n= 26  mean/pair(MIN_SIZE=1)=+6.3251  ROI%=+63.25  t=+2.34  win=16/26
+THR=0.02 GAP=0.20: n= 26  mean/pair(MIN_SIZE=1)=+6.3251  ROI%=+63.25  t=+2.34  win=16/26
+THR=0.02 GAP=0.25: n= 26  mean/pair(MIN_SIZE=1)=+6.3251  ROI%=+63.25  t=+2.34  win=16/26
+THR=0.02 GAP=0.30: n= 26  mean/pair(MIN_SIZE=1)=+6.3251  ROI%=+63.25  t=+2.34  win=16/26
+THR=0.02 GAP=0.35: n= 26  mean/pair(MIN_SIZE=1)=+6.3251  ROI%=+63.25  t=+2.34  win=16/26
+
+最佳（按 t 值）: THR=0.20 GAP=0.00 n=80 ROI%=44.26 t=+3.93
+实盘每侧 5USD：该配置每对期望 ≈ +22.13 USD，80 对期望 ≈ +1770.35 USD（投入 800 USD）
+
+完成
